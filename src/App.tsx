@@ -57,7 +57,7 @@ import {
 import { parsePaymentInstructions } from './utils/payment';
 
 // @ts-ignore
-import logoImg from '../assets/.aistudio/logo.png';
+import logoImg from '../assets/logo.png';
 
 import DynamicFormRenderer from './components/DynamicFormRenderer';
 import { supabase, isSupabaseConfigured } from './supabaseClient';
@@ -83,6 +83,46 @@ const isStemCourse = (course: Course | null | undefined): boolean => {
 
 export default function App() {
   const [isDataLoaded, setIsDataLoaded] = useState(!isSupabaseConfigured);
+
+  // --- ANALYTICS HOOK (Google Analytics 4 & Microsoft Clarity) ---
+  useEffect(() => {
+    // 1. Initialize Microsoft Clarity
+    const clarityId = import.meta.env.VITE_CLARITY_PROJECT_ID;
+    if (clarityId) {
+      try {
+        (function(c,l,a,r,i,t,y){
+            c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+            t=l.createElement(r) as HTMLScriptElement;t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+            y=l.getElementsByTagName(r)[0];y.parentNode?.insertBefore(t,y);
+        })(window as any, document, "clarity", "script", clarityId);
+        console.log("Microsoft Clarity initialized successfully.");
+      } catch (err) {
+        console.error("Failed to initialize Microsoft Clarity:", err);
+      }
+    }
+
+    // 2. Initialize Google Analytics 4 (GA4)
+    const gaId = import.meta.env.VITE_GA_MEASUREMENT_ID;
+    if (gaId) {
+      try {
+        const script = document.createElement('script');
+        script.async = true;
+        script.src = `https://www.googletagmanager.com/gtag/js?id=${gaId}`;
+        document.head.appendChild(script);
+
+        const w = window as any;
+        w.dataLayer = w.dataLayer || [];
+        w.gtag = function(...args: any[]) {
+          w.dataLayer.push(arguments);
+        };
+        w.gtag('js', new Date());
+        w.gtag('config', gaId);
+        console.log("Google Analytics initialized successfully.");
+      } catch (err) {
+        console.error("Failed to initialize Google Analytics:", err);
+      }
+    }
+  }, []);
 
   // --- DATABASE STATE WITH LOCALSTORAGE PERSISTENCE ---
   const [settings, setSettings] = useState<AcademySettings>(() => {
