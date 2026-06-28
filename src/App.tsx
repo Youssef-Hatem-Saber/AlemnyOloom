@@ -87,7 +87,7 @@ export default function App() {
   // --- ANALYTICS HOOK (Google Analytics 4 & Microsoft Clarity) ---
   useEffect(() => {
     // 1. Initialize Microsoft Clarity
-    const clarityId = import.meta.env.VITE_CLARITY_PROJECT_ID;
+    const clarityId = import.meta.env.VITE_CLARITY_PROJECT_ID || 'xe847sro54';
     if (clarityId) {
       try {
         (function(c,l,a,r,i,t,y){
@@ -102,7 +102,7 @@ export default function App() {
     }
 
     // 2. Initialize Google Analytics 4 (GA4)
-    const gaId = import.meta.env.VITE_GA_MEASUREMENT_ID;
+    const gaId = import.meta.env.VITE_GA_MEASUREMENT_ID || 'G-5TD9DMQKVD';
     if (gaId) {
       try {
         const script = document.createElement('script');
