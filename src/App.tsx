@@ -215,6 +215,10 @@ export default function App() {
     return VIRTUAL_STEM_COURSE;
   };
 
+  const latestStemFreeSession = useMemo(() => {
+    return freeSessions.find(fs => fs.isStemTrack) || freeSessions[0] || null;
+  }, [freeSessions]);
+
   // --- SAVE & SUPABASE SYNC HOOKS ---
   const handleSyncError = (type: string, error: any) => {
     if (error) {
@@ -494,6 +498,49 @@ export default function App() {
     }
   }, [activePage]);
 
+  // --- DYNAMIC SEO META UPDATE SYSTEM ---
+  useEffect(() => {
+    let title = "أكاديمية علّمني علوم - تعلّم اليوم، قُد الغد";
+    let description = "أكاديمية علّمني علوم - المنصة الأولى لتأهيل طلاب الشهادة الإعدادية لاختبارات قبول مدارس المتفوقين STEM والضبعة النووية والتكنولوجيا التطبيقية بمصر.";
+    
+    if (activePage === 'home') {
+      title = "علّمني علوم | منصة التأهيل الأولى لمدارس المتفوقين STEM والضبعة النووية";
+      description = "سجل الآن في دورات علمني علوم التأهيلية لمدارس STEM والضبعة النووية. ندربك على اختبارات الذكاء IQ والعلوم والرياضيات والانجليزية لضمان القبول.";
+    } else if (activePage === 'courses') {
+      title = "الكورسات والبرامج المنهجية | أكاديمية علّمني علوم";
+      description = "تصفح برامجنا وكورساتنا المتكاملة والمخصصة لتطوير مهارات التفكير العلمي والبرمجة والفيزياء الفلكية وتأهيل امتحانات المتفوقين.";
+    } else if (activePage === 'stem-track') {
+      title = "برنامج مسار المتفوقين والـ STEM الشامل | علّمني علوم";
+      description = "برنامج مسار STEM والضبعة النووية المتكامل بمصر. محاضرات تفاعلية، امتحانات IQ، متابعة 24/7 وتدريب المقابلات الشخصية لضمان قبولك.";
+    } else if (activePage === 'free-sessions') {
+      title = "الندوات والمحاضرات التعريفية المجانية | علّمني علوم";
+      description = "احجز مقعدك مجاناً في بثنا المباشر القادم للتعريف بشروط التقديم لمدارس المتفوقين STEM ومدرسة الضبعة النووية وطرق التأسيس.";
+    } else if (activePage === 'news') {
+      title = "أحدث الأخبار ومستجدات القبول لعام 2026 | علّمني علوم";
+      description = "تابع آخر الشروط الوزارية الرسمية ومواعيد اختبارات القبول لمدارس المتفوقين STEM والضبعة والتكنولوجيا التطبيقية بمصر.";
+    } else if (activePage === 'contact') {
+      title = "تواصل معنا واستفسر | أكاديمية علّمني علوم";
+      description = "هل لديك استفسار عن مسار المتفوقين أو طريقة الاشتراك؟ تواصل مع إدارة علمني علوم والمدربين مباشرة عبر الهاتف أو الواتساب.";
+    } else if (typeof activePage === 'object' && activePage.type === 'free-session') {
+      title = `${activePage.data.title} | ندوة مجانية`;
+      description = activePage.data.description;
+    } else if (typeof activePage === 'object' && activePage.type === 'news-post') {
+      title = `${activePage.data.title} | أخبار الأكاديمية`;
+      description = stripHtml(activePage.data.content).substring(0, 150);
+    }
+    
+    document.title = title;
+    
+    // Update dynamic description meta tag for search engine indexing
+    let metaDesc = document.querySelector('meta[name="description"]');
+    if (!metaDesc) {
+      metaDesc = document.createElement('meta');
+      metaDesc.setAttribute('name', 'description');
+      document.head.appendChild(metaDesc);
+    }
+    metaDesc.setAttribute('content', description);
+  }, [activePage]);
+
   // --- WORKFLOW STATES ---
   // Registration Modals
   const [selectedCourseForEnroll, setSelectedCourseForEnroll] = useState<Course | null>(null);
@@ -507,6 +554,24 @@ export default function App() {
   });
   
   const [generatedCodeResult, setGeneratedCodeResult] = useState<{
+    code: string;
+    studentName: string;
+    price: number | string;
+    courseTitle: string;
+    isStemCourse: boolean;
+  } | null>(null);
+
+  // States for direct inline enrollment on the STEM track page
+  const [inlineEnrollForm, setInlineEnrollForm] = useState({
+    name: '',
+    phone: '',
+    email: '',
+    senderType: 'student' as 'student' | 'parent',
+    currentSchool: '',
+    governorate: 'القاهرة'
+  });
+
+  const [inlineGeneratedCode, setInlineGeneratedCode] = useState<{
     code: string;
     studentName: string;
     price: number | string;
@@ -550,8 +615,63 @@ export default function App() {
     "الوادي الجديد", "شمال سيناء", "جنوب سيناء", "البحر الأحمر", "مطروح"
   ];
 
-  // --- SUBMISSIONS HANDLERS ---
-  
+  // Direct Inline STEM Course Enrollment
+  const handleInlineEnroll = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inlineEnrollForm.name || !inlineEnrollForm.phone) {
+      alert("يرجى تعبئة الحقول الأساسية: الاسم ورقم الهاتف.");
+      return;
+    }
+
+    const randomDigits = Math.floor(100000 + Math.random() * 900000);
+    const newCode = `AO${randomDigits}`;
+
+    const matchedCourse = getStemTrackCourse();
+    if (!matchedCourse) return;
+
+    const basePrice = matchedCourse.price;
+    const isStem = true;
+    let dbPricePaid = 0;
+    let finalPriceDisplay: number | string = "؟؟ انتظر قريباً";
+
+    const newRegistration: Registration = {
+      id: `reg-${Date.now()}`,
+      studentCode: newCode,
+      studentName: inlineEnrollForm.name,
+      studentPhone: inlineEnrollForm.phone,
+      studentEmail: inlineEnrollForm.email || `${inlineEnrollForm.phone}@alimny.com`,
+      senderType: inlineEnrollForm.senderType,
+      currentSchool: inlineEnrollForm.currentSchool,
+      governorate: inlineEnrollForm.governorate,
+      courseId: matchedCourse.id,
+      dynamicData: {},
+      paymentStatus: 'Pending',
+      paymentMethod: 'حجز مسبق (بانتظار التسعير النهائي)',
+      registeredAt: new Date().toISOString(),
+      pricePaid: dbPricePaid
+    };
+
+    setRegistrations([newRegistration, ...registrations]);
+
+    setInlineGeneratedCode({
+      code: newCode,
+      studentName: inlineEnrollForm.name,
+      price: finalPriceDisplay,
+      courseTitle: matchedCourse.title,
+      isStemCourse: true
+    });
+
+    // Reset Form
+    setInlineEnrollForm({
+      name: '',
+      phone: '',
+      email: '',
+      senderType: 'student',
+      currentSchool: '',
+      governorate: 'القاهرة'
+    });
+  };
+
   // Paid Course Enrollment and Unique Student ID Generator (AOXXXXXXXX)
   const handleCourseEnroll = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -636,7 +756,9 @@ export default function App() {
 
   // Dynamic Form Registration Handler
   const handleDynamicFormSubmit = (data: Record<string, string>) => {
-    const session = activeSessionForRegister || (typeof activePage === 'object' && activePage.type === 'free-session' ? activePage.data : null);
+    const session = activeSessionForRegister || 
+                    (typeof activePage === 'object' && activePage.type === 'free-session' ? activePage.data : null) ||
+                    latestStemFreeSession;
     if (!session) return;
     
     const randomDigits = Math.floor(100000 + Math.random() * 900000);
@@ -913,97 +1035,358 @@ export default function App() {
         {activePage === 'home' && (
           <div className="space-y-16">
             
-            {/* LARGE STEM PATHWAY BANNER */}
-            {settings.isStemTrackEnabled !== false && (
-              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#1E3A8A] via-[#1E40AF] to-[#1D4ED8] p-8 md:p-12 text-white shadow-xl">
-                {/* Decorative light elements */}
-                <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 rounded-full bg-blue-400/20 blur-3xl pointer-events-none"></div>
-                <div className="absolute bottom-0 left-0 -ml-16 -mb-16 w-64 h-64 rounded-full bg-amber-400/10 blur-3xl pointer-events-none"></div>
-                <div className="absolute left-12 top-1/2 -translate-y-1/2 text-white/5 pointer-events-none hidden md:block">
-                  <BrainCircuit className="w-48 h-48" />
-                </div>
-
-                <div className="relative z-10 grid grid-cols-1 md:grid-cols-12 gap-8 items-center text-right">
-                  
-                  {/* Right Column: Title & Badge & Info */}
-                  <div className="md:col-span-7 space-y-4 md:space-y-6 order-1">
-                    <div className="flex flex-wrap gap-2 justify-start md:justify-start">
-                      <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-md bg-amber-500/25 text-amber-300 text-xs font-black tracking-wide uppercase border border-amber-500/30">
-                        {settings.stemPreBookingEnded 
-                          ? `🚀 ${t("المسار فعال ومفتوح حالياً", "Track is Active & Enrolling")}`
-                          : `📢 ${t("حجز مسبق مجاني", "Free Pre-Booking Active")}`}
-                      </span>
-                      <span className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-md bg-white/10 text-blue-200 text-xs font-medium tracking-wide">
-                        ⭐ {t("المسار التأسيسي الأقوى لمدارس المتفوقين", "The Strongest Foundation Track for STEM")}
-                      </span>
-                    </div>
-                    
-                    <h2 className="text-3xl sm:text-4xl md:text-5xl font-black leading-tight text-white tracking-wide">
-                      {t("مسار المتفوقين طريقك للقبول", "STEM Track - Your Pathway to Acceptance")}
-                    </h2>
-                    
-                    <p className="text-blue-100 text-sm sm:text-base leading-relaxed">
-                      {settings.stemPreBookingEnded 
-                        ? t(
-                            "أقوى برنامج تدريب وتأهيل متكامل لاجتياز اختبارات وقبول مدارس المتفوقين في العلوم والتكنولوجيا (STEM) بدأ الآن! التحق بنا فوراً لتجتاز اختبارات القبول وتستعد ذهنياً وعلمياً بأفضل الحصص والمحاضرات.",
-                            "The strongest fully integrated training & qualification program to ace exams and get admitted to STEM schools is active. Join us now to prepare mentally and scientifically with premium lessons!"
-                          )
-                        : t(
-                            "انتظروا قريباً الانطلاقة الكبرى لأول وأقوى برنامج تدريب وتأهيل متكامل لاجتياز اختبارات وقبول مدارس المتفوقين في العلوم والتكنولوجيا (STEM). سنأخذ بيدك خطوة بخطوة من التأسيس العلمي والمهاري والعملي وحتى إعلان قبولك.",
-                            "Coming soon! Prepare for the grand launch of the strongest fully integrated training & qualification program to ace exams and get admitted to STEM schools. We guide you from scientific basics to acceptance."
-                          )}
-                    </p>
+            {/* Redesigned Unified STEM & Nuclear Hero Section */}
+            <div className="relative overflow-hidden rounded-3xl bg-slate-900 text-white p-8 md:p-12 shadow-2xl border border-slate-800">
+              {/* Background patterns */}
+              <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#3b82f6_1px,transparent_1px)] [background-size:24px_24px]"></div>
+              <div className="absolute top-0 right-0 -mr-16 -mt-16 w-80 h-80 rounded-full bg-blue-500/10 blur-3xl pointer-events-none"></div>
+              <div className="absolute bottom-0 left-0 -ml-16 -mb-16 w-80 h-80 rounded-full bg-amber-500/10 blur-3xl pointer-events-none"></div>
+              
+              <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center text-right">
+                
+                {/* Right Column: Title, Subtitle, and CTAs */}
+                <div className="lg:col-span-7 space-y-6">
+                  <div className="flex flex-wrap gap-2 justify-start">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-blue-500/20 text-blue-300 text-xs font-bold border border-blue-500/30">
+                      ⚡ {t("المسار التأهيلي الأول لمدارس المتفوقين بمصر", "The #1 Prep Track for STEM in Egypt")}
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md bg-amber-500/20 text-amber-300 text-xs font-bold border border-amber-500/30">
+                      🚀 {t("مدارس STEM والضبعة النووية", "STEM & Nuclear Schools")}
+                    </span>
                   </div>
 
-                  {/* Left Column: Action Button (aligned left) & Statistics */}
-                  <div className="md:col-span-5 flex flex-col items-center md:items-end gap-6 order-2 w-full text-center">
+                  <h1 className="text-3xl sm:text-5xl font-black text-white leading-tight">
+                    {t("نصنع علماء المستقبل وعباقرة الـ STEM والضبعة", "We Shape Future Scientists & STEM Geniuses")}
+                  </h1>
+
+                  <p className="text-slate-300 text-sm sm:text-base leading-relaxed font-sans">
+                    {settings.aboutText}
+                  </p>
+
+                  <div className="flex flex-col sm:flex-row gap-4 pt-2">
+                    {/* Primary CTA: Paid/Prebooking Course */}
                     <button
                       onClick={() => {
                         const matched = getStemTrackCourse();
                         if (matched) setSelectedCourseForEnroll(matched);
                       }}
-                      className="w-full md:w-auto inline-flex items-center justify-center gap-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black py-4 px-10 rounded-2xl transition-all shadow-lg shadow-amber-500/20 hover:shadow-amber-500/30 hover:scale-[1.02] cursor-pointer text-sm sm:text-base animate-pulse md:self-end"
+                      className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black py-4 px-8 rounded-2xl transition-all shadow-lg shadow-amber-500/20 hover:shadow-amber-500/30 hover:scale-[1.02] cursor-pointer flex items-center justify-center gap-2 text-sm sm:text-base"
                     >
                       <span>
-                        {settings.stemPreBookingEnded 
-                          ? t("سجل واشترك بالمسار الآن", "Enroll & Subscribe to Track Now")
-                          : t("احجز مقعدك مجاناً الآن", "Reserve Your Free Seat Now")}
+                        {settings.stemPreBookingEnded
+                          ? t("اشترك الآن بالبرنامج التأهيلي الكامل", "Subscribe to Full Prep Program Now")
+                          : t("احجز مقعدك بالمسار الشامل (حجز مسبق)", "Reserve Your Seat (Free Pre-Booking)")}
                       </span>
                       <ArrowLeft className="w-4 h-4 rotate-180" />
                     </button>
 
-                    <div className="grid grid-cols-2 gap-4 w-full">
-                      <div className="bg-white/10 backdrop-blur-sm p-4 rounded-2xl border border-white/15 text-right">
-                        <span className="block text-2xl sm:text-3xl font-black text-amber-300 font-sans">{settings.stemLecturesCount || 49}</span>
-                        <span className="text-[11px] text-blue-100 font-bold block mt-1">محاضرة تفاعلية كاملة</span>
+                    {/* Secondary CTA: Scroll to Free Form */}
+                    <a
+                      href="#free-registration-form"
+                      className="bg-white/10 hover:bg-white/15 text-white border border-white/20 font-bold py-4 px-8 rounded-2xl transition-all hover:scale-[1.02] flex items-center justify-center gap-2 text-sm sm:text-base text-center"
+                    >
+                      <span>{t("التسجيل بالندوة التعريفية المجانية", "Register for Free Seminar")}</span>
+                      <Sparkles className="w-4 h-4 text-amber-300 animate-pulse" />
+                    </a>
+                  </div>
+                </div>
+
+                {/* Left Column: Visual highlights and badges */}
+                <div className="lg:col-span-5 w-full">
+                  <div className="bg-slate-950/50 backdrop-blur-md p-6 sm:p-8 rounded-3xl border border-slate-800 space-y-4">
+                    <h3 className="text-sm font-bold text-blue-400 border-b border-slate-800/60 pb-3 flex items-center gap-2">
+                      <BrainCircuit className="w-5 h-5 text-blue-400" />
+                      لماذا يختار المتفوقون أكاديمية علّمني علوم؟
+                    </h3>
+                    
+                    <ul className="space-y-3.5 text-xs text-slate-300 font-sans">
+                      <li className="flex items-start gap-2.5">
+                        <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                        <span>محتوى علمي مخصص يحاكي أسئلة القبول الفعلية تماماً.</span>
+                      </li>
+                      <li className="flex items-start gap-2.5">
+                        <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                        <span>شرح مكثف لمادة الاستعداد العقلي (IQ) بأفكار ذكية ومتطورة.</span>
+                      </li>
+                      <li className="flex items-start gap-2.5">
+                        <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                        <span>تدريب عملي على لجان التقييم والمقابلات الشخصية.</span>
+                      </li>
+                      <li className="flex items-start gap-2.5">
+                        <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                        <span>متابعة وتنبيه دوري لولي الأمر لمستوى الطالب أولاً بأول.</span>
+                      </li>
+                    </ul>
+
+                    <div className="grid grid-cols-2 gap-3 pt-3 border-t border-slate-800/40">
+                      <div className="bg-slate-900/60 p-3 rounded-xl border border-slate-800 text-center">
+                        <span className="block text-2xl font-black text-amber-400 font-sans">{settings.stemLecturesCount || 49}</span>
+                        <span className="text-[10px] text-slate-400 block mt-0.5">محاضرة تفاعلية</span>
                       </div>
-                      <div className="bg-white/10 backdrop-blur-sm p-4 rounded-2xl border border-white/15 text-right">
-                        <span className="block text-2xl sm:text-3xl font-black text-amber-300 font-sans">24/7</span>
-                        <span className="text-[11px] text-blue-100 font-bold block mt-1">متابعة وتقييم دوري</span>
+                      <div className="bg-slate-900/60 p-3 rounded-xl border border-slate-800 text-center">
+                        <span className="block text-2xl font-black text-amber-400 font-sans">24/7</span>
+                        <span className="text-[10px] text-slate-400 block mt-0.5">متابعة علمية</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            {/* Dual Pathway Registration Gateway */}
+            <section className="space-y-6">
+              <div className="text-center max-w-xl mx-auto space-y-2">
+                <h2 className="text-2xl sm:text-3xl font-black text-slate-900">
+                  {t("اختر مسار انضمامك وتألق معنا", "Choose Your Path to Join Us")}
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-500 leading-relaxed font-sans">
+                  {t("سواء كنت تبحث عن تأسيس أولي أو تريد حجز مقعدك بالكامل بالبرنامج الشامل، نوفر لك خيارات مريحة ومحفزة للتقديم الفوري:", "Whether seeking preliminary foundation or reserving your full program seat, we offer motivating options for immediate registration:")}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-stretch">
+                {/* Gateway A: Comprehensive Program / Pre-booking */}
+                <div className="bg-gradient-to-br from-white to-blue-50/20 p-6 sm:p-8 rounded-3xl border border-blue-200/50 shadow-md hover:shadow-lg transition-all flex flex-col justify-between text-right space-y-6 relative overflow-hidden group">
+                  <div className="absolute top-0 left-0 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl pointer-events-none transition-transform group-hover:scale-150"></div>
+                  
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                      <span className="px-3.5 py-1 rounded-full bg-blue-100 text-blue-700 text-xs font-black">
+                        {settings.stemPreBookingEnded ? "🔥 حجز فعال ومفتوح" : "📢 حجز مسبق معتمد"}
+                      </span>
+                      <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl">
+                        <Award className="w-6 h-6" />
+                      </div>
+                    </div>
+
+                    <h3 className="text-xl font-bold text-slate-900">
+                      {t("برنامج التأهيل الشامل والكامل (الكورس الأساسي)", "Full Comprehensive Prep Program (Core Course)")}
+                    </h3>
+                    
+                    <p className="text-xs text-slate-500 leading-relaxed font-sans">
+                      {settings.stemPreBookingEnded 
+                        ? t("اشترك الآن بالبرنامج الشامل لتغطية كافة المناهج والأفكار المتوقعة في العلوم، الرياضيات، الاستعداد العقلي، والمصطلحات الإنجليزية لضمان القبول.", "Subscribe now to cover all expected concepts in Science, Math, IQ, and English terms for guaranteed admission.")
+                        : t("حجز مقعد مسبق مجاني بالكامل وبدون أي دفع مالي حالياً. يمنحك الحجز الأولوية للمجموعات المغلقة وخصماً فورياً بقيمة 10% فور تفعيل وسداد الاشتراك عند الانطلاق.", "Reserve a free seat now with no payment obligation. Ensures priority placement and a 10% discount when prices launch.")}
+                    </p>
+
+                    <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100/30 text-xs space-y-2 font-sans text-slate-650">
+                      <div className="flex justify-between items-center">
+                        <span>الدروس والمحاضرات:</span>
+                        <span className="font-bold text-blue-755 font-mono">{settings.stemLecturesCount || 49} محاضرة تدريبية</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span>قيمة الاشتراك:</span>
+                        <span className="font-bold text-emerald-600 font-mono">
+                          {settings.stemPreBookingEnded ? `${settings.stemPrice || 1200} ج.م` : "مجاني الآن (تنبيه مسبق)"}
+                        </span>
                       </div>
                     </div>
                   </div>
 
+                  <button
+                    onClick={() => {
+                      const matched = getStemTrackCourse();
+                      if (matched) setSelectedCourseForEnroll(matched);
+                    }}
+                    className="w-full bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-extrabold py-3.5 px-6 rounded-2xl transition-all shadow-md shadow-blue-500/10 hover:shadow-blue-500/20 cursor-pointer flex items-center justify-center gap-2 text-sm"
+                  >
+                    <span>
+                      {settings.stemPreBookingEnded 
+                        ? t("سجل واشترك بالبرنامج الشامل", "Register & Subscribe to Full Track")
+                        : t("احجز مقعدك التحضيري مجاناً الآن", "Reserve Your Free Prep Seat Now")}
+                    </span>
+                    <ArrowLeft className="w-4 h-4 rotate-180" />
+                  </button>
+                </div>
+
+                {/* Gateway B: Free Lectures & Seminars */}
+                <div className="bg-gradient-to-br from-white to-amber-50/20 p-6 sm:p-8 rounded-3xl border border-amber-200/50 shadow-md hover:shadow-lg transition-all flex flex-col justify-between text-right space-y-6 relative overflow-hidden group">
+                  <div className="absolute top-0 left-0 w-24 h-24 bg-amber-500/5 rounded-full blur-2xl pointer-events-none transition-transform group-hover:scale-150"></div>
+
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                      <span className="px-3.5 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-black animate-pulse">
+                        ⭐ ندوة بث حي مجانية
+                      </span>
+                      <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl">
+                        <Sparkles className="w-6 h-6" />
+                      </div>
+                    </div>
+
+                    <h3 className="text-xl font-bold text-slate-900">
+                      {t("المحاضرات والندوات الإرشادية المجانية", "Free Guidance Lectures & Seminars")}
+                    </h3>
+
+                    <p className="text-xs text-slate-500 leading-relaxed font-sans">
+                      {t("انضم إلينا في ندواتنا التعريفية المفتوحة لتفهم شكل الامتحانات الرسمية للوزارة، وتتعلم استراتيجيات التفكير المنطقي IQ، وتجرب جودة الشرح العملي قبل أي التزام مالي.", "Join our open seminars to learn exam structures, IQ logical strategies, and experience class quality before any financial commitment.")}
+                    </p>
+
+                    <div className="bg-amber-50/50 p-4 rounded-xl border border-amber-100/30 text-xs space-y-2 font-sans text-slate-650">
+                      <div className="flex justify-between items-center">
+                        <span>الندوة القادمة المنتظرة:</span>
+                        <span className="font-bold text-amber-800">{latestStemFreeSession?.date || "قريباً"}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span>المقاعد المحجوزة للندوة:</span>
+                        <span className="font-bold text-amber-850 font-mono">{latestStemFreeSession?.registeredCount || 0} طالب مسجل</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <a
+                    href="#free-registration-form"
+                    className="w-full bg-[#F59E0B] hover:bg-[#D97706] text-slate-950 font-black py-3.5 px-6 rounded-2xl transition-all shadow-md shadow-amber-500/10 hover:shadow-amber-500/20 text-center flex items-center justify-center gap-2 text-sm"
+                  >
+                    <span>{t("سجل واحجز مقعدك بالندوة مجاناً", "Book Your Free Seminar Seat Now")}</span>
+                    <ChevronLeft className="w-4 h-4" />
+                  </a>
                 </div>
               </div>
-            )}
+            </section>
 
-            {/* HERO SECTION DECORATIVE & TITLE */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-              <div className="lg:col-span-12 space-y-4 text-right">
-
-                <h1 className="text-3xl sm:text-5xl lg:text-3xl font-black text-[#0F172A] leading-tight">
-                  <span className="bg-gradient-to-l from-[#2563EB] to-[#F59E0B] bg-clip-text text-transparent">
-                    {settings.tagline}
-                  </span>
-                </h1>
-
-                <p className="text-slate-600 text-base sm:text-lg leading-relaxed max-w-4xl">
-                  {settings.aboutText}
+            {/* STEM Exam Structure & Curriculum Requirements */}
+            <section className="space-y-6">
+              <div className="text-center max-w-xl mx-auto space-y-2">
+                <span className="inline-block bg-blue-100 text-[#2563EB] text-[10px] font-black px-3 py-1 rounded-full uppercase">
+                  ماذا تشمل اختبارات القبول؟
+                </span>
+                <h2 className="text-2xl sm:text-3xl font-black text-slate-900">
+                  تفاصيل اختبار القبول لمدارس المتفوقين
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-500 leading-relaxed font-sans">
+                  منظومتنا التعليمية ليست مجرد تلقين، بل تدريب عملي مكثف على المحاور الأربعة لاختبارات الوزارة الرسمية:
                 </p>
-
               </div>
-            </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {[
+                  {
+                    num: "01",
+                    title: "الاستعداد الذهني والـ IQ",
+                    desc: "بنشرح المفاهيم الأساسية للاختبار مع أسئلة معقدة لرفع ذكاء الطالب وقدرته على الحل.",
+                    color: "border-t-4 border-t-amber-500"
+                  },
+                  {
+                    num: "02",
+                    title: "العلوم",
+                    desc: "شرح جميع مناهج العلوم مع أسئلة تفاعلية ولضمان الدرجة النهائية في الامتحان.",
+                    color: "border-t-4 border-t-blue-500"
+                  },
+                  {
+                    num: "03",
+                    title: "الرياضيات",
+                    desc: "شرح جميع أساسيات والقواعد الرياضية مع أهم أسئلة الامتحان.",
+                    color: "border-t-4 border-t-purple-500"
+                  },
+                  {
+                    num: "04",
+                    title: "اللغة الإنجليزية",
+                    desc: "تطوير اللغة الإنجليزية للطالب لضمان ارتقاء مستواه اللغوي وليس فقط التركيز على الامتحان.",
+                    color: "border-t-4 border-t-emerald-500"
+                  }
+                ].map((item, idx) => (
+                  <div key={idx} className={`bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all text-right space-y-3 ${item.color}`}>
+                    <span className="text-slate-400 text-lg font-black font-sans block">{item.num}</span>
+                    <h4 className="text-base font-bold text-slate-900">{item.title}</h4>
+                    <p className="text-xs text-slate-500 leading-relaxed font-sans">{item.desc}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="bg-blue-50/70 border border-blue-100 p-6 rounded-3xl text-center space-y-2 mt-6">
+                <p className="text-xs sm:text-sm font-bold text-slate-800 leading-relaxed font-sans">
+                  💡 <strong>مستقبلك يبدأ من هنا:</strong> هذا البرنامج مصمم ليرتقي بعقليتك وطريقة تفكيرك لتتحول إلى طالب بمواصفات عالمية؛ محتوى هذا الكورس سيفيدك بشكل مذهل في بناء عقلية قوية تفيدك طوال حياتك العلمية والعملية حتى وإن لم يحالفك الحظ بالقبول، ولكن مع التمارين الشاملة والمتابعة المستمرة معنا، ستشعر في كل محاضرة بجرعة يقين عالية وثقة متكاملة بأنك الأقرب لتخطي اختبار القبول وحجز مقعدك بمدارس المتفوقين!
+                </p>
+              </div>
+            </section>
+
+            {/* Direct Form Integration on the Homepage */}
+            {latestStemFreeSession && (
+              <section id="free-registration-form" className="scroll-mt-24 pt-6">
+                <div className="bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 border border-blue-500/20 rounded-3xl p-6 sm:p-10 shadow-2xl relative overflow-hidden text-right">
+                  {/* Decorative backgrounds */}
+                  <div className="absolute top-0 right-0 -mr-12 -mt-12 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                  <div className="absolute bottom-0 left-0 -ml-12 -mb-12 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                  
+                  <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+                    
+                    {/* Left: Info details */}
+                    <div className="lg:col-span-6 space-y-6 text-white order-1 lg:order-1">
+                      <div className="space-y-2">
+                        <span className="inline-block px-3 py-1 rounded bg-red-500/20 text-red-400 text-xs font-bold border border-red-500/30 animate-pulse">
+                          ⚠️ بث تفاعلي مجاني - احجز مقعدك فوراً
+                        </span>
+                        <h3 className="text-2xl sm:text-3xl font-black leading-snug">
+                          {latestStemFreeSession.title}
+                        </h3>
+                        <p className="text-xs sm:text-sm text-slate-350 leading-relaxed font-sans">
+                          {latestStemFreeSession.description}
+                        </p>
+                      </div>
+
+                      <div className="space-y-4 pt-4 border-t border-slate-800/80 text-xs text-slate-300 font-sans">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400 text-lg">
+                            📅
+                          </div>
+                          <div>
+                            <span className="block text-slate-400">موعد المحاضرة والندوة المباشرة:</span>
+                            <span className="font-bold text-white text-sm">{latestStemFreeSession.date}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-400 text-lg">
+                            👥
+                          </div>
+                          <div>
+                            <span className="block text-slate-400">المقاعد المأخوذة للطلاب:</span>
+                            <span className="font-bold text-amber-400 text-sm font-sans">{latestStemFreeSession.registeredCount} طالب مسجل معنا</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="bg-slate-900/60 p-4 rounded-2xl border border-slate-800 space-y-2 text-xs">
+                        <h4 className="font-bold text-blue-400 flex items-center gap-1.5">
+                          🛡️ تفعيل التسجيل المباشر والتلقائي:
+                        </h4>
+                        <p className="text-slate-450 leading-normal font-sans">
+                          بمجرد ملء الاستمارة المجاورة بالبيانات الصحيحة، سيتم تسجيلك في قاعدة بيانات الأكاديمية لحضور الندوة مجاناً وتزويدك بـ كود الطالب الأكاديمي الحصري للولوج.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Right: Form block */}
+                    <div className="lg:col-span-6 w-full order-2 lg:order-2">
+                      {dynamicFormSuccess ? (
+                        <div className="bg-slate-900/90 border border-emerald-500/30 p-8 rounded-3xl text-center space-y-4 h-full flex flex-col justify-center items-center shadow-2xl backdrop-blur-sm min-h-[300px]">
+                          <CheckCircle className="w-16 h-16 text-emerald-400 animate-bounce" />
+                          <h3 className="text-xl font-bold text-white">يا بطل، تم حجز مقعدك بنجاح!</h3>
+                          <p className="text-xs text-slate-350 leading-relaxed font-sans">
+                            تم تسجيل بياناتك بنجاح في سجل الندوة المجانية. سنقوم بإرسال دعوة الحضور والتفاصيل ورابط البث المباشر عبر هاتف الواتساب المسجل. نتمنى لك التوفيق والتميز بمسار العباقرة!
+                          </p>
+                        </div>
+                      ) : (
+                        (() => {
+                          const matchedForm = forms.find(f => f.id === latestStemFreeSession.formId) || forms[0];
+                          return (
+                            <div className="bg-white rounded-3xl p-1 shadow-xl border border-slate-200 overflow-hidden">
+                              <DynamicFormRenderer
+                                form={matchedForm}
+                                onSubmit={handleDynamicFormSubmit}
+                                submitLabel="سجل الآن مجاناً وانضم للمحاضرة"
+                              />
+                            </div>
+                          );
+                        })()
+                      )}
+                    </div>
+                    
+                  </div>
+                </div>
+              </section>
+            )}
 
             {/* LATEST COURSES SECTION */}
             <section className="space-y-6">
@@ -1042,10 +1425,10 @@ export default function App() {
                           {course.category}
                         </span>
                         <h3 className="text-lg font-bold text-[#0F172A]">{course.title}</h3>
-                        <p className="text-xs text-slate-500 mt-1 leading-relaxed line-clamp-3">
+                        <p className="text-xs text-slate-500 mt-1 leading-relaxed line-clamp-3 leading-relaxed">
                           {course.description}
                         </p>
-                        <div className="flex gap-4 mt-3 text-xs text-slate-600 font-mono justify-end">
+                        <div className="flex gap-4 mt-3 text-xs text-slate-650 font-mono justify-end">
                           <span>⏱️ المدة: {course.duration}</span>
                           <span>📚 المحاضرات: {course.lecturesCount} محاضره</span>
                         </div>
@@ -1263,74 +1646,242 @@ export default function App() {
           <div className="space-y-12">
             
             {/* Banner detailing our Special Flagship Program */}
-            <div className="bg-white p-8 sm:p-12 rounded-3xl border border-slate-200 shadow-md flex flex-col lg:flex-row items-center gap-8 justify-between relative overflow-hidden text-right">
+            <div className="bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 p-8 sm:p-12 rounded-3xl border border-slate-800 shadow-xl flex flex-col lg:flex-row items-center gap-8 justify-between relative overflow-hidden text-right text-white">
+              <div className="absolute top-0 right-0 -mr-16 -mt-16 w-80 h-80 rounded-full bg-blue-500/10 blur-3xl pointer-events-none"></div>
+              <div className="absolute bottom-0 left-0 -ml-16 -mb-16 w-80 h-80 rounded-full bg-amber-500/10 blur-3xl pointer-events-none"></div>
+
               <div className="space-y-4 max-w-2xl relative z-10 w-full">
-                <span className="inline-block bg-amber-50 text-amber-700 font-extrabold text-xs px-3 py-1 rounded-full border border-amber-200">
-                  البرنامج التدريبي المتكامل برعاية علّمني علوم
+                <span className="inline-block bg-amber-500/20 text-amber-300 font-extrabold text-xs px-3.5 py-1 rounded-full border border-amber-500/30">
+                  ⚡ البرنامج التدريبي المتكامل والتحضيري للأكاديمية
                 </span>
-                <h2 className="text-3xl sm:text-4xl font-black text-[#0F172A]">برنامج مسار المتفوقين والـ STEM</h2>
-                <p className="text-slate-600 text-sm sm:text-base leading-relaxed">
-                  برنامج علمي متكامل مخصص لطلاب الصف الثالث الإعدادي الراغبين في اعتلاء منصات متفوقي العلوم والتكنولوجيا STEM، ومدرسة الضبعة للطاقة الكهرنووية والتكنولوجيا التطبيقية الحديثة بمصر.
+                <h2 className="text-3xl sm:text-4xl font-black text-white">برنامج مسار المتفوقين والـ STEM</h2>
+                <p className="text-slate-300 text-sm sm:text-base leading-relaxed font-sans">
+                  برنامج علمي وتأهيلي متكامل مخصص لطلاب الصف الثالث الإعدادي الراغبين في اعتلاء منصات متفوقي العلوم والتكنولوجيا STEM، ومدرسة الضبعة للطاقة النووية والتكنولوجيا التطبيقية الحديثة بمصر.
                 </p>
                 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-slate-100">
-                  <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200/60 text-right">
-                    <span className="text-slate-450 text-[10px] block font-bold">📚 عدد المحاضرات:</span>
-                    <span className="text-slate-800 font-black text-xs block mt-0.5">🎓 {settings.stemLecturesCount || 49} محاضرة تدريبية</span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4 border-t border-slate-800">
+                  <div className="bg-slate-900/60 p-3 rounded-2xl border border-slate-800 text-right">
+                    <span className="text-slate-500 text-[10px] block font-bold">📚 المنهج والمحتوى:</span>
+                    <span className="text-slate-200 font-black text-xs block mt-0.5">🎓 {settings.stemLecturesCount || 49} محاضرة تفاعلية كاملة</span>
                   </div>
-                  <div className="bg-slate-50 p-3 rounded-2xl border border-slate-200/60 text-right">
-                    <span className="text-slate-450 text-[10px] block font-bold">💰 الاشتراك المالي الكامل:</span>
-                    <span className="text-emerald-600 font-black text-xs block mt-0.5 font-sans">
-                      {settings.stemPreBookingEnded ? `${settings.stemPrice || 1200} ج.م` : "؟؟ انتظر قريباً"}
+                  <div className="bg-slate-900/60 p-3 rounded-2xl border border-slate-800 text-right">
+                    <span className="text-slate-500 text-[10px] block font-bold">💰 قيمة الاشتراك:</span>
+                    <span className="text-emerald-400 font-black text-xs block mt-0.5 font-sans">
+                      {settings.stemPreBookingEnded ? `${settings.stemPrice || 1200} ج.م` : "حجز مسبق (خصم 10% مجاناً)"}
                     </span>
                   </div>
                 </div>
               </div>
 
-              <div className="w-full lg:w-auto relative z-10 shrink-0">
-                <button
-                  onClick={() => {
-                    const matched = getStemTrackCourse();
-                    if (matched) setSelectedCourseForEnroll(matched);
-                  }}
-                  className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-extrabold py-4 px-8 rounded-xl text-sm transition-all shadow-sm pointer cursor-pointer hover:scale-[1.03] w-full lg:w-auto text-center block"
+              <div className="w-full lg:w-auto relative z-10 shrink-0 text-center">
+                <a
+                  href="#enroll-direct-card"
+                  className="bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-extrabold py-4 px-8 rounded-xl text-sm transition-all shadow-lg hover:scale-[1.03] w-full lg:w-auto text-center block cursor-pointer"
                 >
-                  التحق بالمسار وسجّل الآن
-                </button>
+                  التحق بالمسار وسجّل الآن بالأسفل
+                </a>
               </div>
               
               <div className="absolute top-0 bottom-0 left-0 right-0 opacity-5 bg-[radial-gradient(#2563eb_1.5px,transparent_1.5px)] [background-size:16px_16px]"></div>
             </div>
 
-            {/* Announcement Banner for Pre-booking with 10% discount */}
-            {!settings.stemPreBookingEnded && (
-              <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-amber-500 via-amber-600 to-amber-700 p-6 md:p-8 text-slate-950 shadow-lg border border-amber-400 flex flex-col md:flex-row items-center justify-between gap-6">
-                <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 rounded-full bg-white/10 blur-3xl pointer-events-none"></div>
-                <div className="relative z-10 space-y-2 text-right">
-                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-md bg-slate-950 text-amber-400 text-[10px] font-black uppercase tracking-wider">
-                    ⚠️ حجز مسبق معتمد بدون دفع حالياً
-                  </span>
-                  <h3 className="text-xl md:text-2xl font-black">
-                    متاح الآن حجز مقعدك التحضيري لمسار المتفوقين!
+            {/* Direct Inline Registration Form Zone */}
+            <div id="enroll-direct-card" className="scroll-mt-24 grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+              {/* Info Column */}
+              <div className="lg:col-span-5 bg-gradient-to-br from-white to-blue-50/20 p-6 sm:p-8 rounded-3xl border border-blue-200/50 shadow-md flex flex-col justify-between text-right space-y-6">
+                <div className="space-y-4">
+                  <h3 className="text-xl font-bold text-slate-950 flex items-center gap-2">
+                    💡
+                    لماذا تسجل في هذا المسار معنا؟
                   </h3>
-                  <p className="text-xs md:text-sm font-semibold opacity-95 max-w-2xl leading-relaxed">
-                    حجز مقعد مسبق مجاني بالكامل بدون تفعيل دفع مالي حالياً. ستنتظر حتى يتم إصدار تسعير نهائي مخفض جداً للطلاب وبدء الدورة. قيمة الاشتراك المقدرة: <span className="bg-slate-950 text-amber-400 px-3 py-0.5 rounded-full font-black text-sm font-sans mx-1">؟؟ انتظر قريباً</span>
+                  
+                  <ul className="space-y-3.5 text-xs sm:text-sm text-slate-650 font-sans">
+                    <li className="flex items-start gap-2 text-slate-700">
+                      <span className="text-[#2563EB] font-bold">✔</span>
+                      <span><strong>تدريب IQ شامل:</strong> بنشرح المفاهيم الأساسية للاختبار مع أسئلة معقدة لرفع ذكاء الطالب وقدرته على الحل.</span>
+                    </li>
+                    <li className="flex items-start gap-2 text-slate-700">
+                      <span className="text-[#2563EB] font-bold">✔</span>
+                      <span><strong>العلوم:</strong> شرح جميع مناهج العلوم مع أسئلة تفاعلية ولضمان الدرجة النهائية في الامتحان.</span>
+                    </li>
+                    <li className="flex items-start gap-2 text-slate-700">
+                      <span className="text-[#2563EB] font-bold">✔</span>
+                      <span><strong>الرياضيات:</strong> شرح جميع أساسيات والقواعد الرياضية مع أهم أسئلة الامتحان.</span>
+                    </li>
+                    <li className="flex items-start gap-2 text-slate-700">
+                      <span className="text-[#2563EB] font-bold">✔</span>
+                      <span><strong>اللغة الإنجليزية:</strong> تطوير اللغة الإنجليزية للطالب لضمان ارتقاء مستواه اللغوي وليس فقط التركيز على الامتحان.</span>
+                    </li>
+                  </ul>
+                </div>
+
+                <div className="bg-blue-50/50 p-4 rounded-2xl border border-blue-100 text-xs">
+                  <span className="text-blue-700 font-bold block mb-1">📢 تنبيه حجز المقعد:</span>
+                  <p className="text-slate-600 leading-normal font-sans">
+                    نسب القبول بمدارس STEM تتطلب الاستعداد المبكر والذكي. بتسجيلك الآن، تضمن مكاناً في مجموعاتنا التفاعلية وتحصل على أولوية المتابعة.
                   </p>
                 </div>
-                <div className="relative z-10 w-full md:w-auto shrink-0">
-                  <button
-                    onClick={() => {
-                      const matched = getStemTrackCourse();
-                      if (matched) setSelectedCourseForEnroll(matched);
-                    }}
-                    className="w-full md:w-auto inline-flex items-center justify-center gap-2 bg-slate-950 text-white hover:bg-slate-900 font-extrabold py-3.5 px-6 rounded-2xl transition-all shadow-md cursor-pointer text-xs"
-                  >
-                    <span>اضغط هنا للحجز المسبق المجاني</span>
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-                </div>
               </div>
-            )}
+
+              {/* Form / Result Column */}
+              <div className="lg:col-span-7">
+                {inlineGeneratedCode ? (
+                  <div className="bg-white border-2 border-emerald-500/20 p-8 rounded-3xl text-right space-y-6 shadow-lg">
+                    <div className="text-center space-y-2">
+                      <div className="w-14 h-14 bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 rounded-full flex items-center justify-center mx-auto mb-2">
+                        <CheckCircle className="w-8 h-8 text-emerald-500 animate-pulse" />
+                      </div>
+                      <h3 className="text-xl sm:text-2xl font-black text-slate-900">
+                        {settings.stemPreBookingEnded ? "تم استقبال طلب الحجز بنجاح" : "تم حجز مقعدك المسبق بنجاح!"}
+                      </h3>
+                      <p className="text-xs text-slate-500">تم تسجيل بياناتك بقائمة مسار المتفوقين</p>
+                    </div>
+
+                    <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-4 font-sans text-xs text-slate-700">
+                      <div className="flex justify-between items-center border-b border-slate-200 pb-2">
+                        <span>الاسم المسجل:</span>
+                        <span className="font-bold text-slate-900">{inlineGeneratedCode.studentName}</span>
+                      </div>
+                      <div className="flex justify-between items-center border-b border-slate-200 pb-2">
+                        <span>قيمة الاشتراك المالي:</span>
+                        <span className="font-bold text-amber-600 font-mono">
+                          {settings.stemPreBookingEnded ? `${settings.stemPrice || 1200} ج.م` : "مجاني الآن (حجز مسبق)"}
+                        </span>
+                      </div>
+                      
+                      <div className="flex flex-col items-center justify-center pt-2 text-center">
+                        <span className="text-[10px] text-amber-600 font-extrabold uppercase">كود الطالب الخاص بك</span>
+                        <span className="text-2xl font-mono font-black text-blue-600 tracking-wider bg-blue-50 px-6 py-2 rounded-xl border border-blue-100 mt-2 select-all">
+                          {inlineGeneratedCode.code}
+                        </span>
+                        <span className="text-[9px] text-slate-400 mt-1">يرجى نسخ هذا الكود لتأكيد الدفع أو المتابعة معنا</span>
+                      </div>
+                    </div>
+
+                    {!settings.stemPreBookingEnded ? (
+                      <div className="bg-emerald-50 text-emerald-800 p-4 rounded-2xl border border-emerald-100 text-xs sm:text-sm leading-relaxed">
+                        🎉 <strong>تم تأكيد حجز مقعدك المسبق:</strong> لا توجد أي مدفوعات حالياً. سنقوم بالاتصال بك هاتفياً وتزويدك بمواعيد المجموعات وتفاصيل الدورة فور إطلاقها.
+                      </div>
+                    ) : (
+                      <div className="bg-amber-50 text-slate-805 p-4 rounded-2xl border border-amber-100 text-xs leading-relaxed space-y-2">
+                        <h4 className="font-bold text-amber-800 flex items-center gap-1">
+                          ⚠️ خطوات سداد قيمة الاشتراك وتفعيل الكود:
+                        </h4>
+                        <p>
+                          يرجى تحويل قيمة الاشتراك ({settings.stemPrice || 1200} ج.م) عبر إحدى القنوات المتاحة بالأسفل، ثم أرسل لقطة الشاشة مع كود الطالب <strong>{inlineGeneratedCode.code}</strong> للواتساب:
+                        </p>
+                        <ul className="space-y-1 font-mono text-xs text-slate-700 text-right">
+                          <li>📱 فودافون كاش: <strong>{parsePaymentInstructions(settings.paymentInstructions).walletNumber || "01274711669"}</strong></li>
+                          <li>⚡ إنستاباي: <strong>{parsePaymentInstructions(settings.paymentInstructions).instapayLink || "sciteach@instapay"}</strong></li>
+                        </ul>
+                      </div>
+                    )}
+
+                    <div className="flex gap-2 pt-2 border-t border-slate-100">
+                      <a
+                        href={`${settings.whatsapp}?text=${encodeURIComponent(`مرحباً أكاديمية علّمني علوم. لقد سجلت في مسار المتفوقين STEM وكود الطالب الخاص بي هو: ${inlineGeneratedCode.code}`)}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white text-center py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5"
+                      >
+                        <Phone className="w-4 h-4" />
+                        <span>تأكيد الإرسال بالواتساب</span>
+                      </a>
+                      <button
+                        onClick={() => setInlineGeneratedCode(null)}
+                        className="bg-slate-200 hover:bg-slate-350 text-slate-700 px-6 py-3 rounded-xl text-xs font-bold"
+                      >
+                        حجز جديد
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <form onSubmit={handleInlineEnroll} className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm text-right space-y-4">
+                    <div className="border-b border-slate-100 pb-3 text-right">
+                      <h3 className="text-lg font-bold text-slate-800">
+                        {settings.stemPreBookingEnded ? "سجّل الآن بالمسار الأساسي" : "سجل الحجز المسبق مجاناً الآن"}
+                      </h3>
+                      <p className="text-xs text-slate-500 mt-1">
+                        املأ بياناتك في دقيقة واحدة وسيتواصل معك منسقو المسار فوراً
+                      </p>
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                      <label className="text-xs text-slate-655 font-bold">اسم الطالب بالكامل *</label>
+                      <input
+                        type="text"
+                        required
+                        value={inlineEnrollForm.name}
+                        onChange={(e) => setInlineEnrollForm({ ...inlineEnrollForm, name: e.target.value })}
+                        className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        placeholder="يرجى كتابة الاسم ثلاثي..."
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-xs text-slate-655 font-bold">رقم الهاتف (النشط بالواتساب) *</label>
+                        <input
+                          type="text"
+                          required
+                          value={inlineEnrollForm.phone}
+                          onChange={(e) => setInlineEnrollForm({ ...inlineEnrollForm, phone: e.target.value })}
+                          className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono text-left"
+                          placeholder="01xxxxxxxxx"
+                        />
+                      </div>
+
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-xs text-slate-655 font-bold">نوع المسجل:</label>
+                        <select
+                          value={inlineEnrollForm.senderType}
+                          onChange={(e) => setInlineEnrollForm({ ...inlineEnrollForm, senderType: e.target.value as 'student' | 'parent' })}
+                          className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-850 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                        >
+                          <option value="student">طالب</option>
+                          <option value="parent">ولي أمر</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-xs text-slate-650 font-bold">المدرسة الحالية:</label>
+                        <input
+                          type="text"
+                          value={inlineEnrollForm.currentSchool}
+                          onChange={(e) => setInlineEnrollForm({ ...inlineEnrollForm, currentSchool: e.target.value })}
+                          className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                          placeholder="اسم مدرستك الإعدادية..."
+                        />
+                      </div>
+
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-xs text-slate-650 font-bold">المحافظة:</label>
+                        <select
+                          value={inlineEnrollForm.governorate}
+                          onChange={(e) => setInlineEnrollForm({ ...inlineEnrollForm, governorate: e.target.value })}
+                          className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                        >
+                          {GOVERNORATES.map(gov => (
+                            <option key={gov} value={gov}>{gov}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      className="w-full py-3.5 mt-2 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-extrabold rounded-xl text-sm transition-all shadow-md active:translate-y-[1px] cursor-pointer"
+                    >
+                      {settings.stemPreBookingEnded ? "تأكيد التسجيل والانتقال للدفع" : "تأكيد الحجز المسبق المجاني الآن"}
+                    </button>
+                  </form>
+                )}
+              </div>
+            </div>
+
+            {/* Detailed components of the STEM program */}
 
             {/* Detailed components of the STEM program */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
