@@ -94,6 +94,7 @@ export const INITIAL_FORMS: DynamicForm[] = [
     description: "املأ البيانات التالية لحجز مقعدك في البث المباشر القادم للتعريف بمدارس المتفوقين ونظام الامتحانات.",
     fields: [
       { id: "f1", label: "اسم الطالب ثلاثي", type: "text", required: true },
+      { id: "f_phone", label: "رقم الهاتف", type: "phone", required: true },
       { id: "f2", label: "المدرسة الحالية", type: "text", required: true },
       { id: "f3", label: "نسبة المجموع المتوقعة (إرشادية %)", type: "number", required: false },
       { id: "f4", label: "المحافظة", type: "select", required: true, options: ["القاهرة", "الجيزة", "الإسكندرية", "الدقهلية", "الغربية", "القليوبية", "الشرقية", "محافظة أخرى"] },
@@ -106,6 +107,7 @@ export const INITIAL_FORMS: DynamicForm[] = [
     description: "سجل الآن لحضور اللقاء المفتوح مع خبراء الطاقة والمسؤولين لمعرفة شروط التقديم لعام 2026.",
     fields: [
       { id: "fn1", label: "الاسم بالكامل", type: "text", required: true },
+      { id: "fn_phone", label: "رقم الهاتف", type: "phone", required: true },
       { id: "fn2", label: "مجموع الصف الثالث الإعدادي (اختياري)", type: "number", required: false },
       { id: "fn3", label: "المحافظة السكنية", type: "text", required: true },
       { id: "fn4", label: "هل تريد الانضمام للجروب الخاص بـ علّمني علوم؟", type: "select", required: true, options: ["نعم، بالتأكيد", "لا، أكتفي بحضور اللقاء"] }
@@ -117,6 +119,7 @@ export const INITIAL_FORMS: DynamicForm[] = [
     description: "تساعدنا إجاباتك على تطوير البرامج الجديدة الملائمة لشغفك وتطلعاتك المستقبلية.",
     fields: [
       { id: "g1", label: "الاسم", type: "text", required: true },
+      { id: "g_phone", label: "رقم الهاتف", type: "phone", required: true },
       { id: "g2", label: "أكثر مجال يثير اهتمامك", type: "select", required: true, options: ["علم الروبوتات", "برمجة تطبيقات الهاتف", "تصميم الألعاب", "الذكاء الاصطناعي التوليدي"] },
       { id: "g3", label: "ملاحظات أو أسئلة تود طرحها", type: "textarea", required: false }
     ]

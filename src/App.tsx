@@ -761,18 +761,75 @@ export default function App() {
                     latestStemFreeSession;
     if (!session) return;
     
+    // Find the phone number in the submitted form data (handles dynamic fields or direct values)
+    const phoneField = forms.find(f => f.id === session.formId)?.fields.find(f => 
+      f.type === 'phone' || 
+      f.label.includes('هاتف') || 
+      f.label.includes('موبايل') || 
+      f.label.includes('تليفون') ||
+      f.id.includes('phone')
+    );
+    
+    let submittedPhone = "";
+    if (phoneField && data[phoneField.id]) {
+      submittedPhone = data[phoneField.id].trim();
+    } else {
+      const keys = Object.keys(data);
+      const foundKey = keys.find(k => 
+        k.toLowerCase().includes('phone') || 
+        k.includes('هاتف') || 
+        k.includes('موبايل') || 
+        k.includes('تليفون')
+      );
+      if (foundKey) {
+        submittedPhone = data[foundKey].trim();
+      } else {
+        submittedPhone = (data["f_phone"] || data["fn_phone"] || data["g_phone"] || data["رقم الهاتف"] || data["الهاتف"] || "غير متوفر").trim();
+      }
+    }
+
+    if (!submittedPhone || submittedPhone === "غير متوفر") {
+      alert("يرجى إدخال رقم الهاتف للتسجيل.");
+      return;
+    }
+
+    // 1. Check if the student is already registered for this specific free session
+    const isAlreadyRegistered = registrations.some(r => 
+      r.freeSessionId === session.id && 
+      (r.studentPhone.trim() === submittedPhone || (r.dynamicData && Object.values(r.dynamicData).includes(submittedPhone)))
+    );
+
+    if (isAlreadyRegistered) {
+      const existingReg = registrations.find(r => 
+        r.freeSessionId === session.id && 
+        (r.studentPhone.trim() === submittedPhone || (r.dynamicData && Object.values(r.dynamicData).includes(submittedPhone)))
+      );
+      alert(`عذراً، هذا الرقم مسجل بالفعل في هذه المحاضرة. كود الطالب الخاص بك هو: ${existingReg?.studentCode}`);
+      return;
+    }
+
+    // 2. Check if the student is already registered in the system (to reuse the student code)
+    const existingSystemReg = registrations.find(r => 
+      r.studentPhone.trim() === submittedPhone || (r.dynamicData && Object.values(r.dynamicData).includes(submittedPhone))
+    );
+
     const randomDigits = Math.floor(100000 + Math.random() * 900000);
-    const newCode = `AO${randomDigits}`;
+    const newCode = existingSystemReg ? existingSystemReg.studentCode : `AO${randomDigits}`;
+    
+    const nameVal = data["f1"] || data["fn1"] || data["g1"] || data["اسم الطالب ثلاثي"] || data["الاسم بالكامل"] || data["الاسم"] || "طالب غير معرف";
+    const schoolVal = data["f2"] || data["fn2"] || data["المدرسة الحالية"] || "";
+    const govVal = data["f4"] || data["fn3"] || data["المحافظة"] || data["المحافظة السكنية"] || "القاهرة";
+    const emailVal = data["البريد الإلكتروني"] || data["البريد"] || `${submittedPhone}@alimny.com`;
 
     const newRegistration: Registration = {
       id: `reg-${Date.now()}`,
       studentCode: newCode,
-      studentName: data["اسم الطالب ثلاثي"] || data["الاسم بالكامل"] || data["الاسم"] || "طالب غير معرف",
-      studentPhone: data["رقم الهاتف"] || "غير متوفر",
-      studentEmail: data["البريد الإلكتروني"] || "غير متوفر",
+      studentName: nameVal,
+      studentPhone: submittedPhone,
+      studentEmail: emailVal,
       senderType: 'student',
-      currentSchool: data["المدرسة الحالية"] || "",
-      governorate: data["المحافظة"] || data["المحافظة السكنية"] || "القاهرة",
+      currentSchool: schoolVal,
+      governorate: govVal,
       freeSessionId: session.id,
       dynamicFormId: session.formId,
       dynamicData: data,
@@ -792,10 +849,6 @@ export default function App() {
     }));
 
     setDynamicFormSuccess(true);
-    setTimeout(() => {
-      setDynamicFormSuccess(false);
-      setActiveSessionForRegister(null);
-    }, 4000);
   };
 
   // Submit contact message
@@ -1363,9 +1416,25 @@ export default function App() {
                         <div className="bg-slate-900/90 border border-emerald-500/30 p-8 rounded-3xl text-center space-y-4 h-full flex flex-col justify-center items-center shadow-2xl backdrop-blur-sm min-h-[300px]">
                           <CheckCircle className="w-16 h-16 text-emerald-400 animate-bounce" />
                           <h3 className="text-xl font-bold text-white">يا بطل، تم حجز مقعدك بنجاح!</h3>
-                          <p className="text-xs text-slate-350 leading-relaxed font-sans">
+                          <p className="text-xs text-slate-350 leading-relaxed font-sans font-medium">
                             تم تسجيل بياناتك بنجاح في سجل الندوة المجانية. سنقوم بإرسال دعوة الحضور والتفاصيل ورابط البث المباشر عبر هاتف الواتساب المسجل. نتمنى لك التوفيق والتميز بمسار العباقرة!
                           </p>
+                          <div className="mt-4 pt-4 border-t border-slate-800 w-full text-center">
+                            <p className="text-sm font-semibold text-amber-400 mb-3">
+                              ⭐ هل تود الانضمام للمسار الشامل المتكامل والتحضير الفعلي لمدارس المتفوقين؟
+                            </p>
+                            <button
+                              onClick={() => {
+                                const stemCourse = getStemTrackCourse();
+                                setSelectedCourseForEnroll(stemCourse);
+                                setDynamicFormSuccess(false);
+                              }}
+                              className="px-6 py-3 font-bold text-white bg-amber-500 hover:bg-amber-600 rounded-xl transition-all shadow-md hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer w-full text-center"
+                            >
+                              <Award className="w-5 h-5" />
+                              سجل في المسار الكامل الآن
+                            </button>
+                          </div>
                         </div>
                       ) : (
                         (() => {
@@ -2025,6 +2094,22 @@ export default function App() {
                       <p className="text-xs text-slate-500 leading-relaxed">
                         تم تسجيل بياناتك بنجاح في سجل حضور الندوة مجاناً. كود الطالب المخصص لك تم تكوينه وإرفاقه بقائمة الطلبات. سنقوم بإرسال دعوة رابط البث على جروب الأكاديمية قريباً!
                       </p>
+                      <div className="mt-4 pt-4 border-t border-slate-100 w-full text-center">
+                        <p className="text-sm font-semibold text-blue-600 mb-3">
+                          ⭐ هل تود الانضمام للمسار الشامل المتكامل والتحضير الفعلي لمدارس المتفوقين؟
+                        </p>
+                        <button
+                          onClick={() => {
+                            const stemCourse = getStemTrackCourse();
+                            setSelectedCourseForEnroll(stemCourse);
+                            setDynamicFormSuccess(false);
+                          }}
+                          className="px-6 py-3 font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-all shadow-md hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer w-full text-center"
+                        >
+                          <Award className="w-5 h-5 text-white" />
+                          سجل في المسار الكامل الآن
+                        </button>
+                      </div>
                     </div>
                   ) : (
                     // Match the form to formId or fallback to general form
