@@ -908,7 +908,7 @@ export default function App() {
   }
 
   return (
-    <div dir={lang === 'ar' ? 'rtl' : 'ltr'} className="min-h-screen bg-[#F8FAFC] text-[#0F172A] font-sans selection:bg-blue-600 selection:text-white relative">
+    <div dir={lang === 'ar' ? 'rtl' : 'ltr'} className="min-h-screen bg-[#F8FAFC] text-[#0F172A] font-sans selection:bg-blue-600 selection:text-white relative overflow-x-hidden w-full max-w-full">
       {/* Visual background decor elements */}
       <div className="absolute top-0 left-0 right-0 h-[600px] bg-gradient-to-b from-blue-500/5 via-transparent to-transparent pointer-events-none"></div>
       <div className="absolute top-20 left-12 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl pointer-events-none"></div>
