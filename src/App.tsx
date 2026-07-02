@@ -239,7 +239,7 @@ export default function App() {
       id: 'stem-track-virtual',
       title: 'برنامج مسار المتفوقين والـ STEM (المستقل)',
       description: 'حجز مقعد مستقل بمسار المتفوقين والـ STEM ومدرسة الضبعة النووية بدون التزام بكورس معين',
-      longDescription: 'البرنامج الأقوى والأشمل لتأهيل طلاب الشهادة الإعدادية لاختبارات القبول بمدارس المتفوقين في العلوم والتكنولوجيا والضبعة النووية بمصر.',
+      longDescription: 'البرنامج الأقوى والأشمل لتأهيل طلاب الشهادة الإعدادية لاختبارات القبول بمدارس المتفوقين في العلوم والتكنولوجيا والضبعة النووية بمصر، حيث يتولى تدريس كل مادة معلم متخصص لضمان التميز الأكاديمي.',
       price: settings.stemPrice !== undefined ? Number(settings.stemPrice) : 1200,
       level: 'الصف الثالث الإعدادي / طلاب STEM',
       image: 'https://images.unsplash.com/photo-1518152006812-edab29b069ac?auto=format&fit=crop&q=80&w=600',
@@ -1245,6 +1245,10 @@ export default function App() {
                     <ul className="space-y-3.5 text-xs text-slate-300 font-sans">
                       <li className="flex items-start gap-2.5">
                         <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                        <span>مدرس متخصص لكل مادة لضمان التميز وجودة الفهم.</span>
+                      </li>
+                      <li className="flex items-start gap-2.5">
+                        <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                         <span>محتوى علمي مخصص يحاكي أسئلة القبول الفعلية تماماً.</span>
                       </li>
                       <li className="flex items-start gap-2.5">
@@ -1857,6 +1861,10 @@ export default function App() {
                   <ul className="space-y-3.5 text-xs sm:text-sm text-slate-650 font-sans">
                     <li className="flex items-start gap-2 text-slate-700">
                       <span className="text-[#2563EB] font-bold">✔</span>
+                      <span><strong>نخبة معلمين متخصصة:</strong> كل مادة يقوم بتدريسها مدرس متخصص ذو خبرة وكفاءة عالية لضمان أعلى مستويات الفهم والتأهيل.</span>
+                    </li>
+                    <li className="flex items-start gap-2 text-slate-700">
+                      <span className="text-[#2563EB] font-bold">✔</span>
                       <span><strong>تدريب IQ شامل:</strong> بنشرح المفاهيم الأساسية للاختبار مع أسئلة معقدة لرفع ذكاء الطالب وقدرته على الحل.</span>
                     </li>
                     <li className="flex items-start gap-2 text-slate-700">
@@ -2045,6 +2053,7 @@ export default function App() {
             {/* Detailed components of the STEM program */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {[
+                { title: "مدرس متخصص لكل مادة", desc: "يتميز البرنامج بوجود نخبة من المعلمين المتخصصين، حيث يتولى كل مادة معلم ذو خبرة وكفاءة عالية في مجاله." },
                 { title: `أكثر من ${settings.stemLecturesCount || 49} محاضرة علمية مكثفة`, desc: "تغطية مادة الاستعداد العقلي وعلم الأحياء والفيزياء الميكانيكية والكيمياء التطبيقية ومباني الرياضيات." },
                 { title: "تأهيل شامل حقيقي لاختبار القبول", desc: "تمثيل يحاكي اختبارات (IQ) والاستعداد الذهني ومراجعات تراكمية للامتحانات السابقة للوزارة." },
                 { title: "تدريب على المقابلات الشخصية", desc: "نصرف مخاوف الطلاب بمهارات التحدث وحل المشكلات التفاعلي أمام اللجان الأكاديمية وصياغة العروض." },
