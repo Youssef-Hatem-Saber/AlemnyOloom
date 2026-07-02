@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://allimnyoloom.com/sitemap.xml
+Sitemap: https://alemnyoloom.youssefhatem.com/sitemap.xml
