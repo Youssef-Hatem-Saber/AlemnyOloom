@@ -992,13 +992,16 @@ export default function App() {
               </div>
             </div>
 
-            <a 
-              href="#enroll-direct-card" 
-              className="bg-amber-500 hover:bg-amber-600 text-slate-950 px-4 py-1.5 rounded-xl font-black text-xs transition-all hover:scale-105 shrink-0 flex items-center gap-1 shadow-md shadow-amber-500/10"
+            <button 
+              onClick={() => {
+                const matched = getStemTrackCourse();
+                if (matched) setSelectedCourseForEnroll(matched);
+              }}
+              className="bg-amber-500 hover:bg-amber-600 text-slate-950 px-4 py-1.5 rounded-xl font-black text-xs transition-all hover:scale-105 shrink-0 flex items-center gap-1 shadow-md shadow-amber-500/10 cursor-pointer"
             >
               <span>{lang === 'ar' ? 'احجز مقعدك مجاناً' : 'Book Free Seat'}</span>
               <ArrowLeft className="w-3.5 h-3.5 rotate-180" />
-            </a>
+            </button>
           </div>
         </div>
       )}
