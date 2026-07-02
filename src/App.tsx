@@ -993,7 +993,7 @@ export default function App() {
             </div>
 
             <a 
-              href="#free-registration-form" 
+              href="#enroll-direct-card" 
               className="bg-amber-500 hover:bg-amber-600 text-slate-950 px-4 py-1.5 rounded-xl font-black text-xs transition-all hover:scale-105 shrink-0 flex items-center gap-1 shadow-md shadow-amber-500/10"
             >
               <span>{lang === 'ar' ? 'احجز مقعدك مجاناً' : 'Book Free Seat'}</span>
