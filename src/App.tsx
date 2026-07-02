@@ -70,21 +70,19 @@ const stripHtml = (html: string) => {
 const calculateTimeLeft = () => {
   const now = new Date();
   
-  // Target: Friday of this week at 00:00:00 (which is Thursday midnight)
+  // Target: Saturday of this week at 00:00:00 (which is Friday midnight)
   const target = new Date();
   target.setHours(0, 0, 0, 0);
   
-  const currentDay = now.getDay(); // 0 is Sunday, 5 is Friday
-  let daysUntilFriday = (5 - currentDay + 7) % 7;
+  const currentDay = now.getDay(); // 0 is Sunday, 6 is Saturday
+  let daysUntilSaturday = (6 - currentDay + 7) % 7;
   
-  // If today is Friday and it is past 12:00 AM, target next week's Friday.
-  if (currentDay === 5 && (now.getHours() > 0 || now.getMinutes() > 0 || now.getSeconds() > 0)) {
-    daysUntilFriday = 7;
-  } else if (currentDay === 6) {
-    daysUntilFriday = 6;
+  // If today is Saturday and it is past 12:00 AM, target next week's Saturday.
+  if (currentDay === 6 && (now.getHours() > 0 || now.getMinutes() > 0 || now.getSeconds() > 0)) {
+    daysUntilSaturday = 7;
   }
   
-  target.setDate(now.getDate() + daysUntilFriday);
+  target.setDate(now.getDate() + daysUntilSaturday);
   
   const difference = target.getTime() - now.getTime();
   
@@ -965,7 +963,7 @@ export default function App() {
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
               </span>
               <p className="text-xs sm:text-sm font-bold tracking-wide">
-                🔥 {lang === 'ar' ? 'ينتهي الحجز المسبق والخصم الخاص لمسار المتفوقين STEM (الجمعة 12 صباحاً) خلال:' : 'Free Pre-booking and special discount for STEM track end in:'}
+                🔥 {lang === 'ar' ? 'ينتهي الحجز المسبق والخصم الخاص لمسار المتفوقين STEM (السبت 12 صباحاً) خلال:' : 'Free Pre-booking and special discount for STEM track (Saturday 12 AM) end in:'}
               </p>
             </div>
             
