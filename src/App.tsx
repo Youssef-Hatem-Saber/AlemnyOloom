@@ -67,6 +67,39 @@ const stripHtml = (html: string) => {
   return html.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ');
 };
 
+const calculateTimeLeft = () => {
+  const now = new Date();
+  
+  // Target: Friday of this week at 00:00:00 (which is Thursday midnight)
+  const target = new Date();
+  target.setHours(0, 0, 0, 0);
+  
+  const currentDay = now.getDay(); // 0 is Sunday, 5 is Friday
+  let daysUntilFriday = (5 - currentDay + 7) % 7;
+  
+  // If today is Friday and it is past 12:00 AM, target next week's Friday.
+  if (currentDay === 5 && (now.getHours() > 0 || now.getMinutes() > 0 || now.getSeconds() > 0)) {
+    daysUntilFriday = 7;
+  } else if (currentDay === 6) {
+    daysUntilFriday = 6;
+  }
+  
+  target.setDate(now.getDate() + daysUntilFriday);
+  
+  const difference = target.getTime() - now.getTime();
+  
+  if (difference <= 0) {
+    return { days: 0, hours: 0, minutes: 0, seconds: 0 };
+  }
+  
+  return {
+    days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+    hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
+    minutes: Math.floor((difference / 1000 / 60) % 60),
+    seconds: Math.floor((difference / 1000) % 60)
+  };
+};
+
 const isStemCourse = (course: Course | null | undefined): boolean => {
   if (!course) return false;
   const cat = (course.category || "").toUpperCase();
@@ -83,6 +116,14 @@ const isStemCourse = (course: Course | null | undefined): boolean => {
 
 export default function App() {
   const [isDataLoaded, setIsDataLoaded] = useState(!isSupabaseConfigured);
+  const [timeLeft, setTimeLeft] = useState(() => calculateTimeLeft());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeLeft(calculateTimeLeft());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   // --- ANALYTICS HOOK (Google Analytics 4 & Microsoft Clarity) ---
   useEffect(() => {
@@ -913,6 +954,54 @@ export default function App() {
       <div className="absolute top-0 left-0 right-0 h-[600px] bg-gradient-to-b from-blue-500/5 via-transparent to-transparent pointer-events-none"></div>
       <div className="absolute top-20 left-12 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl pointer-events-none"></div>
       <div className="absolute top-[800px] right-20 w-96 h-96 bg-amber-500/5 rounded-full blur-3xl pointer-events-none"></div>
+
+      {/* --- COUNTDOWN BANNER (PRE-BOOKING DEADLINE) --- */}
+      {!settings.stemPreBookingEnded && (
+        <div className="bg-gradient-to-r from-slate-950 via-blue-950 to-slate-950 text-white border-b border-amber-500/20 py-2.5 px-4 z-40 relative shadow-md">
+          <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3 text-center md:text-right">
+            <div className="flex items-center gap-2.5 flex-wrap justify-center md:justify-start">
+              <span className="relative flex h-2.5 w-2.5 shrink-0">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
+              </span>
+              <p className="text-xs sm:text-sm font-bold tracking-wide">
+                🔥 {lang === 'ar' ? 'ينتهي الحجز المسبق والخصم الخاص لمسار المتفوقين STEM (الجمعة 12 صباحاً) خلال:' : 'Free Pre-booking and special discount for STEM track end in:'}
+              </p>
+            </div>
+            
+            <div className="flex items-center gap-2 font-mono" dir="ltr">
+              {timeLeft.days > 0 && (
+                <div className="flex items-center bg-slate-900/60 border border-slate-800 rounded-lg px-2 py-0.5 min-w-[45px] flex-col">
+                  <span className="text-sm sm:text-base font-black text-amber-400">{timeLeft.days}</span>
+                  <span className="text-[8px] uppercase tracking-wider text-slate-400 font-sans font-bold">{lang === 'ar' ? 'يوم' : 'd'}</span>
+                </div>
+              )}
+              <div className="flex items-center bg-slate-900/60 border border-slate-800 rounded-lg px-2 py-0.5 min-w-[45px] flex-col">
+                <span className="text-sm sm:text-base font-black text-white">{timeLeft.hours.toString().padStart(2, '0')}</span>
+                <span className="text-[8px] uppercase tracking-wider text-slate-400 font-sans font-bold">{lang === 'ar' ? 'ساعة' : 'h'}</span>
+              </div>
+              <span className="text-amber-500 font-bold">:</span>
+              <div className="flex items-center bg-slate-900/60 border border-slate-800 rounded-lg px-2 py-0.5 min-w-[45px] flex-col">
+                <span className="text-sm sm:text-base font-black text-white">{timeLeft.minutes.toString().padStart(2, '0')}</span>
+                <span className="text-[8px] uppercase tracking-wider text-slate-400 font-sans font-bold">{lang === 'ar' ? 'دقيقة' : 'm'}</span>
+              </div>
+              <span className="text-amber-500 font-bold">:</span>
+              <div className="flex items-center bg-slate-900/60 border border-slate-800 rounded-lg px-2 py-0.5 min-w-[45px] flex-col">
+                <span className="text-sm sm:text-base font-black text-amber-400 animate-pulse">{timeLeft.seconds.toString().padStart(2, '0')}</span>
+                <span className="text-[8px] uppercase tracking-wider text-slate-400 font-sans font-bold">{lang === 'ar' ? 'ثانية' : 's'}</span>
+              </div>
+            </div>
+
+            <a 
+              href="#free-registration-form" 
+              className="bg-amber-500 hover:bg-amber-600 text-slate-950 px-4 py-1.5 rounded-xl font-black text-xs transition-all hover:scale-105 shrink-0 flex items-center gap-1 shadow-md shadow-amber-500/10"
+            >
+              <span>{lang === 'ar' ? 'احجز مقعدك مجاناً' : 'Book Free Seat'}</span>
+              <ArrowLeft className="w-3.5 h-3.5 rotate-180" />
+            </a>
+          </div>
+        </div>
+      )}
 
       {/* --- MAIN HEADER / HERO BRANDING --- */}
       <header className="border-b border-slate-200 bg-white sticky top-0 z-30 shadow-sm">
