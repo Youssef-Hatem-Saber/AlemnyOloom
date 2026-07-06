@@ -112,6 +112,10 @@ const isStemCourse = (course: Course | null | undefined): boolean => {
          course.id === 'stem-track-virtual';
 };
 
+const validateEgyptianPhone = (phone: string): boolean => {
+  return /^01[0-9]{9}$/.test(phone.trim());
+};
+
 export default function App() {
   const [isDataLoaded, setIsDataLoaded] = useState(!isSupabaseConfigured);
   const [timeLeft, setTimeLeft] = useState(() => calculateTimeLeft());
@@ -662,6 +666,11 @@ export default function App() {
       return;
     }
 
+    if (!validateEgyptianPhone(inlineEnrollForm.phone)) {
+      alert("يرجى ادخال رقم هاتف صالح");
+      return;
+    }
+
     const randomDigits = Math.floor(100000 + Math.random() * 900000);
     const newCode = `AO${randomDigits}`;
 
@@ -670,8 +679,17 @@ export default function App() {
 
     const basePrice = matchedCourse.price;
     const isStem = true;
-    let dbPricePaid = 0;
-    let finalPriceDisplay: number | string = "؟؟ انتظر قريباً";
+    const isPreBooking = !settings.stemPreBookingEnded;
+
+    let dbPricePaid = basePrice;
+    let finalPriceDisplay: number | string = basePrice;
+    let paymentMethod = 'المحافظ الإلكترونية (فودافون كاش)';
+
+    if (isPreBooking) {
+      dbPricePaid = 0;
+      finalPriceDisplay = "؟؟ انتظر قريباً";
+      paymentMethod = 'حجز مسبق (بانتظار التسعير النهائي)';
+    }
 
     const newRegistration: Registration = {
       id: `reg-${Date.now()}`,
@@ -685,7 +703,7 @@ export default function App() {
       courseId: matchedCourse.id,
       dynamicData: {},
       paymentStatus: 'Pending',
-      paymentMethod: 'حجز مسبق (بانتظار التسعير النهائي)',
+      paymentMethod: paymentMethod,
       registeredAt: new Date().toISOString(),
       pricePaid: dbPricePaid
     };
@@ -697,7 +715,7 @@ export default function App() {
       studentName: inlineEnrollForm.name,
       price: finalPriceDisplay,
       courseTitle: matchedCourse.title,
-      isStemCourse: true
+      isStemCourse: isPreBooking
     });
 
     // Reset Form
@@ -719,18 +737,24 @@ export default function App() {
       return;
     }
 
+    if (!validateEgyptianPhone(enrollForm.phone)) {
+      alert("يرجى ادخال رقم هاتف صالح");
+      return;
+    }
+
     // Generate automatic unique student code: AO followed by 6 random/sequential numbers
     const randomDigits = Math.floor(100000 + Math.random() * 900000);
     const newCode = `AO${randomDigits}`;
 
     const isStem = isStemCourse(selectedCourseForEnroll);
+    const isPreBooking = isStem && !settings.stemPreBookingEnded;
     const basePrice = selectedCourseForEnroll.price;
 
     let dbPricePaid = basePrice;
     let finalPriceDisplay: number | string = basePrice;
     let appliedCodeName = '';
 
-    if (isStem) {
+    if (isPreBooking) {
       dbPricePaid = 0;
       finalPriceDisplay = "؟؟ انتظر قريباً";
     } else if (appliedCoupon) {
@@ -755,7 +779,7 @@ export default function App() {
       courseId: selectedCourseForEnroll.id,
       dynamicData: {},
       paymentStatus: 'Pending',
-      paymentMethod: isStem ? 'حجز مسبق (بانتظار التسعير النهائي)' : 'المحافظ الإلكترونية (فودافون كاش)',
+      paymentMethod: isPreBooking ? 'حجز مسبق (بانتظار التسعير النهائي)' : 'المحافظ الإلكترونية (فودافون كاش)',
       registeredAt: new Date().toISOString(),
       pricePaid: dbPricePaid,
       appliedCoupon: appliedCodeName || undefined
@@ -779,7 +803,7 @@ export default function App() {
       studentName: enrollForm.name,
       price: finalPriceDisplay,
       courseTitle: selectedCourseForEnroll.title,
-      isStemCourse: isStem
+      isStemCourse: isPreBooking
     });
 
     // Reset Form
@@ -829,6 +853,11 @@ export default function App() {
 
     if (!submittedPhone || submittedPhone === "غير متوفر") {
       alert("يرجى إدخال رقم الهاتف للتسجيل.");
+      return;
+    }
+
+    if (!validateEgyptianPhone(submittedPhone)) {
+      alert("يرجى ادخال رقم هاتف صالح");
       return;
     }
 
@@ -895,6 +924,11 @@ export default function App() {
     e.preventDefault();
     if (!contactForm.name || !contactForm.phone || !contactForm.message) {
       alert("الاسم ورقم الهاتف والرسالة حقول إلزامية للتواصل!");
+      return;
+    }
+
+    if (!validateEgyptianPhone(contactForm.phone)) {
+      alert("يرجى ادخال رقم هاتف صالح");
       return;
     }
 
@@ -2579,7 +2613,7 @@ export default function App() {
                 <span className="text-[10px] bg-blue-900/40 text-blue-400 border border-blue-900/20 px-3 py-1 rounded-full font-bold">
                   {selectedCourseForEnroll.category}
                 </span>
-                {isStemCourse(selectedCourseForEnroll) ? (
+                {isStemCourse(selectedCourseForEnroll) && !settings.stemPreBookingEnded ? (
                   <>
                     <h3 className="text-xl font-black text-white mt-2">حجز مسبق معتمد لمسار المتفوقين</h3>
                     <p className="text-xs text-slate-400 mt-1">
@@ -2682,7 +2716,7 @@ export default function App() {
                   />
                 </div>
 
-                {!isStemCourse(selectedCourseForEnroll) && (
+                {(!isStemCourse(selectedCourseForEnroll) || settings.stemPreBookingEnded) && (
                   <div className="bg-slate-950/75 p-4 rounded-xl border border-slate-800 space-y-2 text-right">
                     <label className="text-xs text-slate-300 font-bold block">🏷️ هل لديك كوبون خصم؟</label>
                     <div className="flex gap-2">
