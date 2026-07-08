@@ -493,7 +493,11 @@ export default function App() {
   useEffect(() => {
     const handlePopState = () => {
       setCurrentPath(window.location.pathname || '/');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      
+      // If there is no hash, scroll to top. Otherwise, let the hash scroll effect handle it.
+      if (!window.location.hash) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
@@ -538,6 +542,21 @@ export default function App() {
   useEffect(() => {
     if (typeof activePage === 'object' && activePage.type === 'free-session') {
       setActiveSessionForRegister(activePage.data);
+    }
+  }, [activePage]);
+
+  // Smooth scroll to element with id matching URL hash (e.g. for direct links to forms)
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash) {
+      const timer = setTimeout(() => {
+        const id = hash.replace('#', '');
+        const element = document.getElementById(id);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 400); // Small delay to let the SPA finish rendering
+      return () => clearTimeout(timer);
     }
   }, [activePage]);
 
