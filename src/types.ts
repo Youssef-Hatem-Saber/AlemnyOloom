@@ -122,3 +122,26 @@ export interface AcademySettings {
   stemPreBookingEnded?: boolean;
   isStemTrackEnabled?: boolean;
 }
+
+export interface ExamQuestion {
+  id: string;
+  subject: 'english' | 'iq' | 'math' | 'science';
+  question: string;
+  options: string[];
+  correctAnswer: string;
+  points: number;
+  image?: string;
+}
+
+export interface ExamSubmission {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  studentCode?: string;
+  score: number;
+  totalPoints: number;
+  answers: Record<string, string>;
+  submittedAt: string;
+}
+

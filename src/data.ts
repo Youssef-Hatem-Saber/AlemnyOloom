@@ -1,4 +1,4 @@
-import { Course, FreeSession, News, Teacher, DynamicForm, AcademySettings, Registration, ContactMessage, Coupon } from './types';
+import { Course, FreeSession, News, Teacher, DynamicForm, AcademySettings, Registration, ContactMessage, Coupon, ExamQuestion } from './types';
 
 export const INITIAL_SETTINGS: AcademySettings = {
   academyName: "علّمني علوم",
@@ -288,5 +288,417 @@ export const INITIAL_COUPONS: Coupon[] = [
     discountType: "fixed",
     discountValue: 100,
     isActive: true
+  }
+];
+
+export const INITIAL_EXAM_QUESTIONS: ExamQuestion[] = [
+  // --- ENGLISH (1-10) ---
+  {
+    id: "q_eng_1",
+    subject: "english",
+    question: "Which best explains why the author begins the text by talking about magical garbage fairies?",
+    options: [
+      "He is putting a common misconception to rest.",
+      "He is trying to get the reader's attention.",
+      "He is addressing his concern in a serious way.",
+      "He is supporting his argument with evidence."
+    ],
+    correctAnswer: "He is trying to get the reader's attention.",
+    points: 2
+  },
+  {
+    id: "q_eng_2",
+    subject: "english",
+    question: "Which best defines the meaning of incineration as it is used in the text?",
+    options: [
+      "To bury waste materials in a large hole",
+      "To allow waste products to decompose and become fertilizer",
+      "To burn waste materials and harvest the energy",
+      "To turn waste materials into products like book covers"
+    ],
+    correctAnswer: "To burn waste materials and harvest the energy",
+    points: 2
+  },
+  {
+    id: "q_eng_3",
+    subject: "english",
+    question: "Which was not cited in the third paragraph as an issue with landfilling?",
+    options: [
+      "Landfills are smelly.",
+      "Usable materials are wasted in landfills.",
+      "Landfills may pollute the water supply.",
+      "It is difficult to find locations for landfills."
+    ],
+    correctAnswer: "Usable materials are wasted in landfills.",
+    points: 2
+  },
+  {
+    id: "q_eng_4",
+    subject: "english",
+    question: "Which conclusion could best be supported with text from the passage?",
+    options: [
+      "Each method of waste management has its drawbacks.",
+      "Recycling is without a doubt the best way to handle waste.",
+      "Incineration is the best way to process waste.",
+      "All large cities should create massive compost piles."
+    ],
+    correctAnswer: "Each method of waste management has its drawbacks.",
+    points: 2
+  },
+  {
+    id: "q_eng_5",
+    subject: "english",
+    question: "Which best expresses the main idea of the fourth paragraph?",
+    options: [
+      "Landfills take up a lot of space.",
+      "Composting is good for the soil but it can be hard to do.",
+      "The process of composting is very complicated and scientific.",
+      "There is a lot of plastic garbage in landfills."
+    ],
+    correctAnswer: "Composting is good for the soil but it can be hard to do.",
+    points: 2
+  },
+  {
+    id: "q_eng_6",
+    subject: "english",
+    question: "Which best expresses the meaning of the word compacted as it is used in the third paragraph?",
+    options: [
+      "Garbage is burned before it is thrown in a hole.",
+      "Garbage is put in trucks before it is thrown in a hole.",
+      "Garbage is crushed smaller before it is thrown in a hole.",
+      "Garbage is put in a can before it is thrown in a hole."
+    ],
+    correctAnswer: "Garbage is crushed smaller before it is thrown in a hole.",
+    points: 2
+  },
+  {
+    id: "q_eng_7",
+    subject: "english",
+    question: "Which best expresses the author's main purpose in writing this?",
+    options: [
+      "To convince readers to recycle and compost",
+      "To persuade readers that recycling is a waste of resources",
+      "To compare and contrast recycling and landfilling",
+      "To inform readers of methods of waste management"
+    ],
+    correctAnswer: "To inform readers of methods of waste management",
+    points: 2
+  },
+  {
+    id: "q_eng_8",
+    subject: "english",
+    question: "Which is not included in this text?",
+    options: [
+      "A description of how trash is collected",
+      "A description of the uses of compost",
+      "A description of the two methods of incinerating trash",
+      "A description of how landfills have advanced over time"
+    ],
+    correctAnswer: "A description of how trash is collected",
+    points: 2
+  },
+  {
+    id: "q_eng_9",
+    subject: "english",
+    question: "Which best explains why composting is not feasible on a large scale?",
+    options: [
+      "People wouldn't want to touch all of that gross rotting food.",
+      "It would smell too bad in densely populated cities.",
+      "It would attract rodents that would spread disease.",
+      "Plastic would get into the compost and turn it into a pollutant."
+    ],
+    correctAnswer: "Plastic would get into the compost and turn it into a pollutant.",
+    points: 2
+  },
+  {
+    id: "q_eng_10",
+    subject: "english",
+    question: "Which title best expresses the main idea of this text?",
+    options: [
+      "The Magic of Recycling: Bringing Back What Was Once Lost",
+      "Methods of Waste Management: Pros and Cons",
+      "Recycling, Landfilling, or Composting: Which is Best For You?",
+      "Do Your Part: How to Save the Earth by Recycling and Composting"
+    ],
+    correctAnswer: "Methods of Waste Management: Pros and Cons",
+    points: 2
+  },
+
+  // --- IQ (11-20) ---
+  {
+    id: "q_iq_1",
+    subject: "iq",
+    question: "ما هو العدد التالي في هذه المتتالية؟ 2، 4، 8، 16، 32، ...",
+    options: ["40", "48", "64", "50"],
+    correctAnswer: "64",
+    points: 2
+  },
+  {
+    id: "q_iq_2",
+    subject: "iq",
+    question: "التناظر اللفظي: القلب : الصدر تشبه العين : ______",
+    options: ["الرمش", "الوجه", "الرؤية", "الدمع"],
+    correctAnswer: "الوجه",
+    points: 2
+  },
+  {
+    id: "q_iq_3",
+    subject: "iq",
+    question: "كم شهراً في السنة يحتوي على 28 يوماً؟",
+    options: ["شهر واحد", "4 أشهر", "6 أشهر", "12 شهراً"],
+    correctAnswer: "12 شهراً",
+    points: 2
+  },
+  {
+    id: "q_iq_4",
+    subject: "iq",
+    question: "إذا كان أحمد أطول من علي، وعلي أطول من حسن، فمن هو الأقصر بينهم؟",
+    options: ["أحمد", "علي", "حسن", "علي وحسن متساويان"],
+    correctAnswer: "حسن",
+    points: 2
+  },
+  {
+    id: "q_iq_5",
+    subject: "iq",
+    question: "ما هو العدد الذي يحل محل علامة الاستفهام؟ 1، 3، 6، 10، ؟",
+    options: ["11", "13", "15", "18"],
+    correctAnswer: "15",
+    points: 2
+  },
+  {
+    id: "q_iq_6",
+    subject: "iq",
+    question: "ما هي الكلمة الغريبة بين هذه الكلمات؟ [سكين - ملعقة - شوكة - طبق]",
+    options: ["سكين", "ملعقة", "شوكة", "طبق"],
+    correctAnswer: "طبق",
+    points: 2
+  },
+  {
+    id: "q_iq_7",
+    subject: "iq",
+    question: "إذا كان لديك 3 تفاحات، وأخذتَ مني تفاحتين، فكم تفاحة أصبحت تمتلكها؟",
+    options: ["تفاحة واحدة", "تفاحتان", "3 تفاحات", "5 تفاحات"],
+    correctAnswer: "تفاحتان",
+    points: 2
+  },
+  {
+    id: "q_iq_8",
+    subject: "iq",
+    question: "شقيق خالك الوحيد نائم على أريكتك، من يكون هذا الشخص؟",
+    options: ["عمك", "والدك", "جدك", "ابن عمك"],
+    correctAnswer: "والدك",
+    points: 2
+  },
+  {
+    id: "q_iq_9",
+    subject: "iq",
+    question: "ما هو الحرف التالي في هذه المتتالية؟ س، ف، م، أ، م، ...",
+    options: ["ن", "ش", "ج", "خ"],
+    correctAnswer: "ج",
+    points: 2
+  },
+  {
+    id: "q_iq_10",
+    subject: "iq",
+    question: "إذا كان: 2 + 3 = 10 و 7 + 2 = 63 و 6 + 5 = 66؛ فكم يساوي 8 + 4؟",
+    options: ["32", "48", "84", "96"],
+    correctAnswer: "96",
+    points: 2
+  },
+
+  // --- MATH (21-30) ---
+  {
+    id: "q_math_1",
+    subject: "math",
+    question: "المثلث ا ب ج فيه اب = 4 سم، ب ج = 9 سم فإن أكبر محيط للمثلث = ..... حيث طول ا ج عدد صحيح",
+    options: ["23 سم", "26 سم", "24 سم", "25 سم"],
+    correctAnswer: "25 سم",
+    points: 2
+  },
+  {
+    id: "q_math_2",
+    subject: "math",
+    question: "في متوازي أضلاع ا ب ج د إذا كان القطر اج ينصف الزاويتين ج، ا فإن الشكل ا ب ج د يكون:",
+    options: ["مستطيل", "مربع", "معين", "لا يشترط أي شكل سابق"],
+    correctAnswer: "معين",
+    points: 2
+  },
+  {
+    id: "q_math_3",
+    subject: "math",
+    question: "في الشكل المقابل إذا كان مساحة الجزء المظلل 1/3 مساحة المثلث، فإن النسبة بين مساحة الدائرة إلى مساحة المثلث = .....",
+    options: ["1:2", "1:1", "3:2", "2:1"],
+    correctAnswer: "3:2",
+    points: 2,
+    image: "/math_q3.jpg"
+  },
+  {
+    id: "q_math_4",
+    subject: "math",
+    question: "كرة تمس أوجه مكعب من الداخل، إذا كان طول قطر الكرة 4 سم فإن حجم المكعب = .....",
+    options: ["64 سم³", "512 سم³", "400 سم³", "216 سم³"],
+    correctAnswer: "64 سم³",
+    points: 2
+  },
+  {
+    id: "q_math_5",
+    subject: "math",
+    question: "متوازي مستطيلات النسبة بين أبعادها 4 : 3 : 2 فإذا كانت مساحته الكلية 208 سم² فإن حجمه يساوي .....",
+    options: ["96 سم³", "216 سم³", "24 سم³", "192 سم³"],
+    correctAnswer: "192 سم³",
+    points: 2
+  },
+  {
+    id: "q_math_6",
+    subject: "math",
+    question: "المستطيل الذي بعداه س ، س - 5 ومحيطه 26 سم فإن مساحته = .....",
+    options: ["12 سم²", "13 سم²", "36 سم²", "144 سم²"],
+    correctAnswer: "36 سم²",
+    points: 2
+  },
+  {
+    id: "q_math_7",
+    subject: "math",
+    question: "مثلثان متشابهان النسبة بين محيطيهما (7 : 5) فإذا كانت مساحة الأول 343 فإن مساحة سطح الثاني = .....",
+    options: ["225", "245", "175", "350"],
+    correctAnswer: "175",
+    points: 2
+  },
+  {
+    id: "q_math_8",
+    subject: "math",
+    question: "∛5 هو:",
+    options: ["عدد نسبي وليس عدد صحيح", "عدد طبيعي", "عدد صحيح وليس عدد طبيعي", "عدد غير نسبي"],
+    correctAnswer: "عدد غير نسبي",
+    points: 2
+  },
+  {
+    id: "q_math_9",
+    subject: "math",
+    question: "في الشكل المقابل إذا كان L1 || L2 فإن س = .....",
+    options: ["30 درجة", "45 درجة", "50 درجة", "40 درجة"],
+    correctAnswer: "40 درجة",
+    points: 2,
+    image: "/math_q9.png"
+  },
+  {
+    id: "q_math_10",
+    subject: "math",
+    question: "عند إلقاء حجر نرد مرة واحدة فإن احتمال ظهور عدد يقبل القسمة على 7 يساوي:",
+    options: ["صفر", "1/7", "1", "-1"],
+    correctAnswer: "صفر",
+    points: 2
+  },
+
+  // --- SCIENCE (31-40) ---
+  {
+    id: "q_sci_1",
+    subject: "science",
+    question: "كيف تُسمّى مجموعة الخلايا الّتي لها مبنى مُشابِه ووظيفة مُشترَكة؟",
+    options: ["جسم", "عضو", "نسيج", "جهاز"],
+    correctAnswer: "نسيج",
+    points: 2
+  },
+  {
+    id: "q_sci_2",
+    subject: "science",
+    question: "ما هي وظيفة غشاء الخليّة؟",
+    options: [
+      "منع خروج فائض الماء من الخلية",
+      "منع دخول فائض الماء إلى الخلية",
+      "يُمكّن مروراً حراً للمواد",
+      "يُمكّن مروراً مراقباً للمواد"
+    ],
+    correctAnswer: "يُمكّن مروراً مراقباً للمواد",
+    points: 2
+  },
+  {
+    id: "q_sci_3",
+    subject: "science",
+    question: "أشِّر على الجملة الصّحيحة من بين الجُمل التّالية:",
+    options: [
+      "غالبيّة النّباتات مبنيّة من خلايا",
+      "الحيوانات فقط مبنيّة من خلايا",
+      "البكتيريا فقط مبنيّة من خلايا",
+      "جميع الكائنات الحيّة مبنيّة من خلايا"
+    ],
+    correctAnswer: "جميع الكائنات الحيّة مبنيّة من خلايا",
+    points: 2
+  },
+  {
+    id: "q_sci_4",
+    subject: "science",
+    question: "ما الصحيح قولُه عن الجدار في الخليّة النباتيّة؟",
+    options: [
+      "الجدار يُحدِّّد شكل الخليّة ويحميها",
+      "الجدار موجود في الجهة الداخليّة للغشاء",
+      "الجدار مُكوَّن من ألياف زلاليّة ودهنيّة",
+      "الجدار يسمح بانتقال الموادّ بشكلٍ مراقَبٍ"
+    ],
+    correctAnswer: "الجدار يُحدِّّد شكل الخليّة ويحميها",
+    points: 2
+  },
+  {
+    id: "q_sci_5",
+    subject: "science",
+    question: "أي مركب من المركبات التالية غير موجود في جميع أنواع الخلايا؟",
+    options: ["غشاء الخلية", "جدار الخلية", "السيتوبلازم", "المادة الوراثية DNA"],
+    correctAnswer: "جدار الخلية",
+    points: 2
+  },
+  {
+    id: "q_sci_6",
+    subject: "science",
+    question: "إذا نجح العلماء في زراعة بلاستيدات خضراء مأخوذة من نبتة في خلايا جِلْد إنسان، فإنّه من المعقول أنّ جِلْد هذا الإنسان:",
+    options: [
+      "سيكون محميًّا من الأشعّة",
+      "سيكون قادرًا على إنتاج الأوكسجين",
+      "سيكون غير نفّاذ للماء",
+      "سيكون قادرًا على الاسْمِّرار بسهولة"
+    ],
+    correctAnswer: "سيكون قادرًا على إنتاج الأوكسجين",
+    points: 2
+  },
+  {
+    id: "q_sci_7",
+    subject: "science",
+    question: "ما الوظيفة الأساسية لمادة الكلوروفيل لدى النباتات? ",
+    options: [
+      "امتصاص الطاقة الضوئية",
+      "تفكيك ثاني أكسيد الكربون",
+      "جعل أوراق النباتات سامة للحشرات",
+      "وقاية النباتات من الأمراض"
+    ],
+    correctAnswer: "امتصاص الطاقة الضوئية",
+    points: 2
+  },
+  {
+    id: "q_sci_8",
+    subject: "science",
+    question: "أيّ مما يلي يمثل الترتيب الصحيح لمستويات التنظيم في الكائن الحي من الأصغر إلى الأكبر؟",
+    options: [
+      "نسيج، عضو، خلية، كائن حي",
+      "خلية، نسيج، عضو، جهاز، كائن حي",
+      "عضو، نسيج، خلية، جهاز، كائن حي",
+      "خلية، عضو، نسيج، كائن حي"
+    ],
+    correctAnswer: "خلية، نسيج، عضو، جهاز، كائن حي",
+    points: 2
+  },
+  {
+    id: "q_sci_9",
+    subject: "science",
+    question: "أي جزء من الأجزاء التالية موجود فقط في الخلية النباتية وليس في الخلية الحيوانية؟",
+    options: ["النواة", "السيتوبلازم", "البلاستيدات الخضراء والجدار الخلوي", "الغشاء البلازمي"],
+    correctAnswer: "البلاستيدات الخضراء والجدار الخلوي",
+    points: 2
+  },
+  {
+    id: "q_sci_10",
+    subject: "science",
+    question: "ما الجهاز المسؤول عن حركة جميع أجزاء الجسم؟",
+    options: ["الجهاز التنفسي", "الجهاز الهضمي", "الجهاز العصبي", "الجهاز العضلي"],
+    correctAnswer: "الجهاز العضلي",
+    points: 2
   }
 ];

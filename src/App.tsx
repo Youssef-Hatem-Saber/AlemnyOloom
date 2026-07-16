@@ -39,7 +39,9 @@ import {
   DynamicForm, 
   Registration, 
   AcademySettings,
-  Coupon
+  Coupon,
+  ExamQuestion,
+  ExamSubmission
 } from './types';
 
 import { 
@@ -51,7 +53,8 @@ import {
   INITIAL_NEWS, 
   INITIAL_REGISTRATIONS, 
   INITIAL_MESSAGES,
-  INITIAL_COUPONS
+  INITIAL_COUPONS,
+  INITIAL_EXAM_QUESTIONS
 } from './data';
 
 import { parsePaymentInstructions } from './utils/payment';
@@ -61,6 +64,7 @@ import logoImg from '../assets/logo.png';
 
 import DynamicFormRenderer from './components/DynamicFormRenderer';
 import { supabase, isSupabaseConfigured } from './supabaseClient';
+import ExamPage from './components/ExamPage';
 
 const stripHtml = (html: string) => {
   if (!html) return '';
@@ -218,6 +222,25 @@ export default function App() {
   const [coupons, setCoupons] = useState<Coupon[]>(() => {
     const saved = localStorage.getItem('ao_coupons');
     return saved ? JSON.parse(saved) : INITIAL_COUPONS;
+  });
+
+  const [examQuestions, setExamQuestions] = useState<ExamQuestion[]>(() => {
+    const saved = localStorage.getItem('ao_exam_questions');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      const q8 = parsed.find((q: any) => q.id === 'q_math_8');
+      if (q8 && (q8.question.includes('-5') || q8.question.includes('الجذر'))) {
+        localStorage.setItem('ao_exam_questions', JSON.stringify(INITIAL_EXAM_QUESTIONS));
+        return INITIAL_EXAM_QUESTIONS;
+      }
+      return parsed;
+    }
+    return INITIAL_EXAM_QUESTIONS;
+  });
+
+  const [examSubmissions, setExamSubmissions] = useState<ExamSubmission[]>(() => {
+    const saved = localStorage.getItem('ao_exam_submissions');
+    return saved ? JSON.parse(saved) : [];
   });
 
   // Derived courses computation to feed dynamically configured STEM values
@@ -408,6 +431,36 @@ export default function App() {
     }
   }, [coupons, isDataLoaded]);
 
+  useEffect(() => {
+    localStorage.setItem('ao_exam_questions', JSON.stringify(examQuestions));
+    if (isSupabaseConfigured && isDataLoaded && supabase) {
+      const sync = async () => {
+        try {
+          const { error } = await supabase.from('ao_exam_questions').upsert(examQuestions);
+          handleSyncError("exam_questions", error);
+        } catch (err) {
+          console.log("Supabase exam questions sync postponed (Network Offline)");
+        }
+      };
+      sync();
+    }
+  }, [examQuestions, isDataLoaded]);
+
+  useEffect(() => {
+    localStorage.setItem('ao_exam_submissions', JSON.stringify(examSubmissions));
+    if (isSupabaseConfigured && isDataLoaded && supabase) {
+      const sync = async () => {
+        try {
+          const { error } = await supabase.from('ao_exam_submissions').upsert(examSubmissions);
+          handleSyncError("exam_submissions", error);
+        } catch (err) {
+          console.log("Supabase exam submissions sync postponed (Network Offline)");
+        }
+      };
+      sync();
+    }
+  }, [examSubmissions, isDataLoaded]);
+
   // ON MOUNT SYNC FROM SUPABASE
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) return;
@@ -451,6 +504,18 @@ export default function App() {
         // Coupons
         const { data: cpnD, error: cpnE } = await supabase.from('ao_coupons').select('*');
         if (!cpnE && cpnD) setCoupons(cpnD);
+
+        // Exam Questions
+        const { data: qstD, error: qstE } = await supabase.from('ao_exam_questions').select('*');
+        if (!qstE && qstD && qstD.length > 0) {
+          setExamQuestions(qstD);
+        } else if (!qstE && (!qstD || qstD.length === 0)) {
+          await supabase.from('ao_exam_questions').upsert(INITIAL_EXAM_QUESTIONS);
+        }
+
+        // Exam Submissions
+        const { data: subD, error: subE } = await supabase.from('ao_exam_submissions').select('*');
+        if (!subE && subD) setExamSubmissions(subD);
 
       } catch (err) {
         console.warn("Could not sync complete Supabase model. Tables may not be fully initialized in SQL editor.", err);
@@ -518,6 +583,7 @@ export default function App() {
     if (currentPath === '/free-sessions') return 'free-sessions';
     if (currentPath === '/news') return 'news';
     if (currentPath === '/contact') return 'contact';
+    if (currentPath === '/exam' || currentPath === '/test' || currentPath === '/quiz') return 'exam';
 
     // check dynamic free sessions slugs, e.g. '/free-session-stem' or '/free-session/stem-prep'
     const cleanPath = currentPath.startsWith('/') ? currentPath.substring(1) : currentPath; // e.g. 'free-session-stem'
@@ -583,6 +649,9 @@ export default function App() {
     } else if (activePage === 'contact') {
       title = "تواصل معنا واستفسر | أكاديمية علّمني علوم";
       description = "هل لديك استفسار عن مسار المتفوقين أو طريقة الاشتراك؟ تواصل مع إدارة علمني علوم والمدربين مباشرة عبر الهاتف أو الواتساب.";
+    } else if (activePage === 'exam') {
+      title = "الاختبار التقييمي العام للقبول بمدارس المتفوقين | علّمني علوم";
+      description = "ابدأ الآن اختبار التقييم الذاتي الشامل للاستعداد لمدارس المتفوقين STEM والضبعة النووية بمصر. 40 دقيقة لتقييم مستواك في العلوم والرياضيات والذكاء والإنجليزي.";
     } else if (typeof activePage === 'object' && activePage.type === 'free-session') {
       title = `${activePage.data.title} | ندوة مجانية`;
       description = activePage.data.description;
@@ -1110,6 +1179,7 @@ export default function App() {
               { label: t("الكورسات والبرامج", "Courses & Programs"), path: "/courses" },
               { label: t("المحاضرات المجانية", "Free Lectures"), path: "/free-sessions" },
               { label: t("آخر الأخبار", "Latest News"), path: "/news" },
+              { label: t("الاختبار التقييمي", "Assessment Exam"), path: "/exam" },
               { label: t("اتصل بنا", "Contact Us"), path: "/contact" },
             ].map((link) => {
               const isActive = (link.path === '/' && activePage === 'home') || 
@@ -1179,6 +1249,7 @@ export default function App() {
                   { label: t("الكورسات والبرامج", "Courses & Programs"), path: "/courses" },
                   { label: t("المحاضرات المجانية", "Free Lectures"), path: "/free-sessions" },
                   { label: t("آخر الأخبار", "Latest News"), path: "/news" },
+                  { label: t("الاختبار التقييمي", "Assessment Exam"), path: "/exam" },
                   { label: t("اتصل بنا", "Contact Us"), path: "/contact" },
                 ].map((link) => {
                   const isActive = (link.path === '/' && activePage === 'home') || 
@@ -2551,6 +2622,18 @@ export default function App() {
 
             </div>
           </div>
+        )}
+
+        {/* EXAM VIEW PAGE */}
+        {activePage === 'exam' && (
+          <ExamPage
+            questions={examQuestions}
+            registrations={registrations}
+            onAddSubmission={(sub) => {
+              setExamSubmissions(prev => [...prev, sub]);
+            }}
+            onNavigateHome={() => navigateTo('/')}
+          />
         )}
 
 
