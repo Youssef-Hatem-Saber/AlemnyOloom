@@ -2629,8 +2629,17 @@ export default function App() {
           <ExamPage
             questions={examQuestions}
             registrations={registrations}
+            submissions={examSubmissions}
             onAddSubmission={(sub) => {
-              setExamSubmissions(prev => [...prev, sub]);
+              setExamSubmissions(prev => {
+                const index = prev.findIndex(item => item.id === sub.id);
+                if (index !== -1) {
+                  const updated = [...prev];
+                  updated[index] = sub;
+                  return updated;
+                }
+                return [...prev, sub];
+              });
             }}
             onNavigateHome={() => navigateTo('/')}
           />
