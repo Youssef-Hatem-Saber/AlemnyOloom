@@ -573,6 +573,34 @@ export default function ExamPage({ questions, registrations, submissions = [], o
     alert(`⏳ انتهى الوقت المحدد للاختبار (${isEnglishOnly ? '10 دقائق' : '40 دقيقة'})! تم تسليم إجاباتك تلقائياً.`);
   };
 
+  const handleEnglishRetakeInit = () => {
+    localStorage.removeItem('ao_exam_completed_status');
+    localStorage.removeItem('ao_exam_last_result');
+    localStorage.removeItem('ao_exam_running');
+    localStorage.removeItem('ao_exam_answers');
+    localStorage.removeItem('ao_exam_start_time');
+    localStorage.removeItem('ao_exam_is_english_only');
+    localStorage.removeItem('ao_exam_lang');
+
+    const savedName = localStorage.getItem('ao_exam_student_name') || name;
+    const savedPhone = localStorage.getItem('ao_exam_student_phone') || phone;
+    const savedEmail = localStorage.getItem('ao_exam_student_email') || email;
+    const savedCode = localStorage.getItem('ao_exam_student_code') || studentCode;
+
+    setName(savedName);
+    setPhone(savedPhone);
+    setEmail(savedEmail);
+    setStudentCode(savedCode);
+    setAnswers({});
+    setCompleted(false);
+    setStarted(false);
+    setFormSubmitted(false);
+
+    setActiveTab('english_only');
+    setIsEnglishOnly(true);
+    setActiveSubject('english');
+  };
+
   // Format time (MM:SS)
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -1330,6 +1358,16 @@ One thing that is easier to do is burning garbage. There are two main ways to in
                 <ArrowRight className="w-4 h-4" />
                 <span>العودة للموقع الرئيسي</span>
               </button>
+
+              {!isEnglishOnly && !isEnglishAlreadyRetaken && (
+                <button
+                  onClick={handleEnglishRetakeInit}
+                  className="bg-gradient-to-l from-indigo-600 to-indigo-500 hover:from-indigo-700 hover:to-indigo-600 text-white font-bold px-6 py-2.5 rounded-xl text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-md hover:shadow-indigo-500/20"
+                >
+                  <BookOpen className="w-4 h-4" />
+                  <span>تحسين درجة اللغة الإنجليزية (إعادة اختبار الإنجليزي فقط)</span>
+                </button>
+              )}
             </div>
           </div>
 
