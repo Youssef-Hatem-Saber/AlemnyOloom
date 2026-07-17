@@ -301,6 +301,27 @@ export default function ExamPage({ questions, registrations, submissions = [], o
     }
   }, []);
 
+  // Check if they have already completed the exam on this device
+  useEffect(() => {
+    const completedStatus = localStorage.getItem('ao_exam_completed_status');
+    const lastResultStr = localStorage.getItem('ao_exam_last_result');
+    if (completedStatus === 'true' && lastResultStr) {
+      try {
+        const lastResult = JSON.parse(lastResultStr);
+        setFinalScore(lastResult.score);
+        setTimeSpent(lastResult.timeSpent);
+        setSubmittedAtStr(lastResult.date);
+        setAnswers(lastResult.answers || {});
+        setIsEnglishOnly(!!lastResult.isEnglishOnly);
+        setEnglishOnlyNewScore(lastResult.englishOnlyNewScore);
+        setHasPreviousSub(!!lastResult.hasPreviousSub);
+        setCompleted(true);
+      } catch (e) {
+        console.error("Error loading completed exam state from localStorage", e);
+      }
+    }
+  }, []);
+
   // Sync answers to localstorage
   useEffect(() => {
     if (started && !completed) {
@@ -329,6 +350,30 @@ export default function ExamPage({ questions, registrations, submissions = [], o
   const handleStartExam = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !phone.trim() || !email.trim()) return;
+
+    // Check for duplicate submission
+    const cleanPhone = phone.trim();
+    const cleanEmail = email.trim().toLowerCase();
+
+    const phoneMatchedSub = cleanPhone.length >= 10 ? submissions.find(s => 
+      s.phone && (s.phone.trim() === cleanPhone || s.phone.replace(/^0/, '').trim() === cleanPhone.replace(/^0/, '').trim())
+    ) : null;
+
+    const emailMatchedSub = cleanEmail.length > 3 ? submissions.find(s => 
+      s.email && s.email.trim().toLowerCase() === cleanEmail
+    ) : null;
+
+    const matchedSub = phoneMatchedSub || emailMatchedSub;
+    if (matchedSub) {
+      const isEnglishAlreadyRetaken = matchedSub.answers?.englishRetaken === "true";
+      if (activeTab === 'full') {
+        alert("🚨 عذراً، لقد قمت بأداء الاختبار الكامل مسبقاً. يُسمح لك بمحاولة واحدة إضافية لإعادة قسم اللغة الإنجليزية فقط من التبويب المخصص.");
+        return;
+      } else if (activeTab === 'english_only' && isEnglishAlreadyRetaken) {
+        alert("🚨 عذراً، لقد استنفدت فرصة إعادة اختبار اللغة الإنجليزية بالفعل. لا يمكنك دخول الاختبار مجدداً.");
+        return;
+      }
+    }
 
     setFormSubmitted(true);
     setStarted(true);
@@ -420,9 +465,15 @@ export default function ExamPage({ questions, registrations, submissions = [], o
             delete updatedAnswers[q.id];
           }
         });
+        
+        // Mark that the student has completed the English retake
+        updatedAnswers.englishRetaken = "true";
       } else {
         finalScoreVal = newEnglishScore;
         totalPointsVal = questions.length * 2;
+        
+        // Even if there was no previous sub, since they took English-only, it counts as their English retake
+        updatedAnswers.englishRetaken = "true";
       }
     } else {
       finalScoreVal = calculateScore();
@@ -496,6 +547,25 @@ export default function ExamPage({ questions, registrations, submissions = [], o
     math: 'الرياضيات',
     science: 'العلوم'
   };
+
+  const cleanPhone = phone.trim();
+  const cleanEmail = email.trim().toLowerCase();
+
+  const phoneMatchedSub = cleanPhone.length >= 10 ? submissions.find(s => 
+    s.phone && (s.phone.trim() === cleanPhone || s.phone.replace(/^0/, '').trim() === cleanPhone.replace(/^0/, '').trim())
+  ) : null;
+
+  const emailMatchedSub = cleanEmail.length > 3 ? submissions.find(s => 
+    s.email && s.email.trim().toLowerCase() === cleanEmail
+  ) : null;
+
+  const duplicateSubmission = phoneMatchedSub || emailMatchedSub;
+  const isEnglishAlreadyRetaken = duplicateSubmission?.answers?.englishRetaken === "true";
+
+  // Block status based on activeTab
+  const isBlocked = duplicateSubmission 
+    ? (activeTab === 'full' || isEnglishAlreadyRetaken)
+    : false;
 
   const subjectsOrder: ('english' | 'iq' | 'math' | 'science')[] = ['english', 'iq', 'math', 'science'];
 
@@ -709,7 +779,7 @@ export default function ExamPage({ questions, registrations, submissions = [], o
 
                 {/* Language selection for Science and Math */}
                 <div className="space-y-1 pt-2">
-                  <label className="text-xs font-bold text-slate-450 block mb-1.5">لغة أسئلة العلوم والرياضيات:</label>
+                  <label className="text-xs font-bold text-slate-455 block mb-1.5">لغة أسئلة العلوم والرياضيات:</label>
                   <div className="grid grid-cols-2 gap-3">
                     <button
                       type="button"
@@ -740,7 +810,7 @@ export default function ExamPage({ questions, registrations, submissions = [], o
               </>
             )}
 
-            {studentCode && activeTab === 'full' && (
+            {studentCode && activeTab === 'full' && !duplicateSubmission && (
               <motion.div 
                 initial={{ opacity: 0, y: 5 }} 
                 animate={{ opacity: 1, y: 0 }}
@@ -755,9 +825,72 @@ export default function ExamPage({ questions, registrations, submissions = [], o
               </motion.div>
             )}
 
+            {/* Case 1: Already took Full, and currently viewing Full Tab */}
+            {duplicateSubmission && activeTab === 'full' && (
+              <motion.div
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-amber-950/40 border border-amber-800/85 rounded-2xl p-4 flex items-start gap-2.5 text-amber-455 text-xs font-bold text-right"
+              >
+                <AlertCircle className="w-5 h-5 shrink-0 text-amber-400 mt-0.5" />
+                <div>
+                  <p className="text-amber-300 font-extrabold text-sm">⚠️ تم أداء الاختبار الكامل مسبقاً</p>
+                  <p className="mt-1 text-slate-300 leading-relaxed font-bold">
+                    عذراً، هذا الحساب مسجل باسم (<strong>{duplicateSubmission.name}</strong>) وقد أدى الاختبار الكامل بالفعل.
+                  </p>
+                  <p className="mt-1.5 text-amber-400">
+                    يمكنك الانتقال لعلامة التبويب الأخرى **"اختبار الإنجليزية فقط"** بالأعلى لتحسين درجتك (فرصة واحدة فقط).
+                  </p>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Case 2: Already took Full, currently viewing English-only Tab, and has NOT retaken English yet */}
+            {duplicateSubmission && activeTab === 'english_only' && !isEnglishAlreadyRetaken && (
+              <motion.div
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-emerald-950/40 border border-emerald-800/80 rounded-2xl p-4 flex items-start gap-2.5 text-emerald-450 text-xs font-bold text-right"
+              >
+                <CheckCircle className="w-5 h-5 shrink-0 text-emerald-400 mt-0.5" />
+                <div>
+                  <p className="text-emerald-300 font-extrabold text-sm">🌟 فرصة إعادة قسم اللغة الإنجليزية</p>
+                  <p className="mt-1 text-slate-300 leading-relaxed font-bold">
+                    مرحباً بك يا <strong>{duplicateSubmission.name}</strong>. لديك فرصة **واحدة إضافية** لإعادة قسم اللغة الإنجليزية فقط.
+                  </p>
+                  <p className="mt-1.5 text-emerald-400/90 font-bold">
+                    عند الانتهاء والتسليم، سيتم تحديث نتيجتك الإجمالية بالدرجة الجديدة وحفظها تلقائياً.
+                  </p>
+                </div>
+              </motion.div>
+            )}
+
+            {/* Case 3: Already took English-only retake (Blocked completely) */}
+            {duplicateSubmission && activeTab === 'english_only' && isEnglishAlreadyRetaken && (
+              <motion.div
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-rose-950/40 border border-rose-800/80 rounded-2xl p-4 flex items-start gap-2.5 text-rose-455 text-xs font-bold text-right"
+              >
+                <AlertCircle className="w-5 h-5 shrink-0 text-rose-400 mt-0.5" />
+                <div>
+                  <p className="text-rose-300 font-extrabold text-sm">⚠️ استنفاد كافة المحاولات المتاحة</p>
+                  <p className="mt-1 text-slate-300 leading-relaxed font-bold">
+                    لقد استنفدت بالفعل محاولة الاختبار الكامل وفرصة إعادة قسم اللغة الإنجليزية لهذا الحساب.
+                  </p>
+                  <p className="mt-1.5 text-rose-400 font-bold">غير مسموح بأداء الاختبار أو التعديل عليه مرة أخرى.</p>
+                </div>
+              </motion.div>
+            )}
+
             <button
               type="submit"
-              className="w-full bg-gradient-to-l from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white py-3.5 px-4 rounded-xl font-bold transition-all shadow-lg hover:shadow-blue-500/20 active:scale-[0.98] cursor-pointer flex items-center justify-center gap-2 mt-4 text-base"
+              disabled={isBlocked}
+              className={`w-full py-3.5 px-4 rounded-xl font-bold transition-all shadow-lg active:scale-[0.98] flex items-center justify-center gap-2 mt-4 text-base ${
+                isBlocked 
+                  ? 'bg-slate-800 text-slate-500 border border-slate-700/50 cursor-not-allowed shadow-none active:scale-100' 
+                  : 'bg-gradient-to-l from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white hover:shadow-blue-500/20 cursor-pointer'
+              }`}
             >
               <span>{activeTab === 'full' ? 'ابدأ الاختبار الكامل الآن' : 'ابدأ اختبار الإنجليزية فقط'}</span>
               <ChevronLeft className="w-5 h-5" />
