@@ -465,8 +465,8 @@ export default function ExamPage({ questions, registrations, submissions = [], o
 
     const cleanPhone = phone.trim();
     const existingSub = submissions.find(s => 
-      s.phone.trim() === cleanPhone || 
-      s.phone.replace(/^0/, '').trim() === cleanPhone.replace(/^0/, '').trim()
+      (studentCode && s.studentCode === studentCode) ||
+      (s.phone && (s.phone.trim() === cleanPhone || s.phone.replace(/^0/, '').trim() === cleanPhone.replace(/^0/, '').trim()))
     );
 
     let finalScoreVal = 0;
@@ -479,8 +479,9 @@ export default function ExamPage({ questions, registrations, submissions = [], o
     if (isEnglishOnly) {
       let newEnglishScore = 0;
       englishQuestions.forEach((q) => {
+        const translatedQ = getQuestionData(q, examLang);
         const selected = answers[q.id];
-        if (selected && selected.trim() === q.correctAnswer.trim()) {
+        if (selected && selected.trim() === translatedQ.correctAnswer.trim()) {
           newEnglishScore += q.points || 2;
         }
       });
@@ -490,8 +491,9 @@ export default function ExamPage({ questions, registrations, submissions = [], o
       if (existingSub) {
         let prevEnglishScore = 0;
         englishQuestions.forEach((q) => {
+          const translatedQ = getQuestionData(q, examLang);
           const selected = existingSub.answers[q.id];
-          if (selected && selected.trim() === q.correctAnswer.trim()) {
+          if (selected && selected.trim() === translatedQ.correctAnswer.trim()) {
             prevEnglishScore += q.points || 2;
           }
         });
@@ -554,7 +556,10 @@ export default function ExamPage({ questions, registrations, submissions = [], o
       date: nowStr,
       answers: updatedAnswers,
       isEnglishOnly,
-      englishOnlyNewScore: isEnglishOnly ? questions.filter(q => q.subject === 'english' && answers[q.id]?.trim() === q.correctAnswer.trim()).length * 2 : undefined,
+      englishOnlyNewScore: isEnglishOnly ? questions.filter(q => {
+        const translatedQ = getQuestionData(q, examLang);
+        return q.subject === 'english' && answers[q.id]?.trim() === translatedQ.correctAnswer.trim();
+      }).length * 2 : undefined,
       hasPreviousSub: !!existingSub
     }));
   };
