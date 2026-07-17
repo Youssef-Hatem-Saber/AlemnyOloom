@@ -2630,7 +2630,7 @@ export default function App() {
             questions={examQuestions}
             registrations={registrations}
             submissions={examSubmissions}
-            onAddSubmission={(sub) => {
+            onAddSubmission={async (sub) => {
               setExamSubmissions(prev => {
                 const index = prev.findIndex(item => item.id === sub.id);
                 if (index !== -1) {
@@ -2640,6 +2640,15 @@ export default function App() {
                 }
                 return [...prev, sub];
               });
+
+              if (isSupabaseConfigured && supabase) {
+                try {
+                  const { error } = await supabase.from('ao_exam_submissions').upsert([sub]);
+                  if (error) console.error("Supabase direct exam submission upsert error:", error);
+                } catch (e) {
+                  console.error("Failed to directly upsert exam submission:", e);
+                }
+              }
             }}
             onNavigateHome={() => navigateTo('/')}
           />

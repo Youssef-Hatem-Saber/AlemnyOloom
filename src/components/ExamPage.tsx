@@ -322,6 +322,49 @@ export default function ExamPage({ questions, registrations, submissions = [], o
     }
   }, []);
 
+  // If completed is true, but submissions are loaded, check if the submission still exists.
+  // If it was deleted by the admin, reset completed status and clear local storage to give them another chance.
+  useEffect(() => {
+    if (submissions.length > 0) {
+      const savedPhone = localStorage.getItem('ao_exam_student_phone') || phone;
+      const savedEmail = localStorage.getItem('ao_exam_student_email') || email;
+      
+      const cleanPhone = savedPhone.trim();
+      const cleanEmail = savedEmail.trim().toLowerCase();
+      
+      if (cleanPhone || cleanEmail) {
+        const stillExists = submissions.some(s => 
+          (cleanPhone && s.phone && (s.phone.trim() === cleanPhone || s.phone.replace(/^0/, '').trim() === cleanPhone.replace(/^0/, '').trim())) ||
+          (cleanEmail && s.email && s.email.trim().toLowerCase() === cleanEmail)
+        );
+        
+        if (!stillExists && localStorage.getItem('ao_exam_completed_status') === 'true') {
+          // Submission was deleted by admin! Clear local storage and reset states
+          localStorage.removeItem('ao_exam_completed_status');
+          localStorage.removeItem('ao_exam_last_result');
+          localStorage.removeItem('ao_exam_running');
+          localStorage.removeItem('ao_exam_answers');
+          localStorage.removeItem('ao_exam_start_time');
+          localStorage.removeItem('ao_exam_is_english_only');
+          localStorage.removeItem('ao_exam_lang');
+          localStorage.removeItem('ao_exam_student_name');
+          localStorage.removeItem('ao_exam_student_phone');
+          localStorage.removeItem('ao_exam_student_email');
+          localStorage.removeItem('ao_exam_student_code');
+          
+          setCompleted(false);
+          setName('');
+          setPhone('');
+          setEmail('');
+          setStudentCode('');
+          setAnswers({});
+          setFormSubmitted(false);
+          setStarted(false);
+        }
+      }
+    }
+  }, [submissions]);
+
   // Sync answers to localstorage
   useEffect(() => {
     if (started && !completed) {
