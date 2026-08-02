@@ -41,7 +41,8 @@ import {
   AcademySettings,
   Coupon,
   ExamQuestion,
-  ExamSubmission
+  ExamSubmission,
+  PlacementSubmission
 } from './types';
 
 import { 
@@ -65,6 +66,7 @@ import logoImg from '../assets/logo.png';
 import DynamicFormRenderer from './components/DynamicFormRenderer';
 import { supabase, isSupabaseConfigured } from './supabaseClient';
 import ExamPage from './components/ExamPage';
+import PlacementTestPage from './components/PlacementTestPage';
 
 const stripHtml = (html: string) => {
   if (!html) return '';
@@ -240,6 +242,11 @@ export default function App() {
 
   const [examSubmissions, setExamSubmissions] = useState<ExamSubmission[]>(() => {
     const saved = localStorage.getItem('ao_exam_submissions');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  const [placementSubmissions, setPlacementSubmissions] = useState<PlacementSubmission[]>(() => {
+    const saved = localStorage.getItem('ao_placement_submissions');
     return saved ? JSON.parse(saved) : [];
   });
 
@@ -461,6 +468,21 @@ export default function App() {
     }
   }, [examSubmissions, isDataLoaded]);
 
+  useEffect(() => {
+    localStorage.setItem('ao_placement_submissions', JSON.stringify(placementSubmissions));
+    if (isSupabaseConfigured && isDataLoaded && supabase) {
+      const sync = async () => {
+        try {
+          const { error } = await supabase.from('ao_placement_submissions').upsert(placementSubmissions);
+          handleSyncError("placement_submissions", error);
+        } catch (err) {
+          console.log("Supabase placement submissions sync postponed (Network Offline)");
+        }
+      };
+      sync();
+    }
+  }, [placementSubmissions, isDataLoaded]);
+
   // ON MOUNT SYNC FROM SUPABASE
   useEffect(() => {
     if (!isSupabaseConfigured || !supabase) return;
@@ -516,6 +538,14 @@ export default function App() {
         // Exam Submissions
         const { data: subD, error: subE } = await supabase.from('ao_exam_submissions').select('*');
         if (!subE && subD) setExamSubmissions(subD);
+
+        // Placement Submissions
+        try {
+          const { data: ptSubD, error: ptSubE } = await supabase.from('ao_placement_submissions').select('*');
+          if (!ptSubE && ptSubD) setPlacementSubmissions(ptSubD);
+        } catch (e) {
+          console.warn("Failed to load placement submissions from Supabase:", e);
+        }
 
       } catch (err) {
         console.warn("Could not sync complete Supabase model. Tables may not be fully initialized in SQL editor.", err);
@@ -650,8 +680,8 @@ export default function App() {
       title = "تواصل معنا واستفسر | أكاديمية علّمني علوم";
       description = "هل لديك استفسار عن مسار المتفوقين أو طريقة الاشتراك؟ تواصل مع إدارة علمني علوم والمدربين مباشرة عبر الهاتف أو الواتساب.";
     } else if (activePage === 'exam') {
-      title = "الاختبار التقييمي العام للقبول بمدارس المتفوقين | علّمني علوم";
-      description = "ابدأ الآن اختبار التقييم الذاتي الشامل للاستعداد لمدارس المتفوقين STEM والضبعة النووية بمصر. 40 دقيقة لتقييم مستواك في العلوم والرياضيات والذكاء والإنجليزي.";
+      title = "اختبار تحديد مستوى البرمجة | أكاديمية علّمني علوم";
+      description = "اختبر مستواك الحقيقي في البرمجة خلال دقائق، واحصل على تقييم احترافي يحدد مستواك الحالي، والمسار الأنسب لك، والمستوى الذي يمكنك البدء منه داخل الأكاديمية.";
     } else if (typeof activePage === 'object' && activePage.type === 'free-session') {
       title = `${activePage.data.title} | ندوة مجانية`;
       description = activePage.data.description;
@@ -1179,7 +1209,7 @@ export default function App() {
               { label: t("الكورسات والبرامج", "Courses & Programs"), path: "/courses" },
               { label: t("المحاضرات المجانية", "Free Lectures"), path: "/free-sessions" },
               { label: t("آخر الأخبار", "Latest News"), path: "/news" },
-              { label: t("الاختبار التقييمي", "Assessment Exam"), path: "/exam" },
+              { label: t("اختبار تحديد المستوى", "Placement Test"), path: "/exam" },
               { label: t("اتصل بنا", "Contact Us"), path: "/contact" },
             ].map((link) => {
               const isActive = (link.path === '/' && activePage === 'home') || 
@@ -2626,12 +2656,10 @@ export default function App() {
 
         {/* EXAM VIEW PAGE */}
         {activePage === 'exam' && (
-          <ExamPage
-            questions={examQuestions}
-            registrations={registrations}
-            submissions={examSubmissions}
+          <PlacementTestPage
+            submissions={placementSubmissions}
             onAddSubmission={async (sub) => {
-              setExamSubmissions(prev => {
+              setPlacementSubmissions(prev => {
                 const index = prev.findIndex(item => item.id === sub.id);
                 if (index !== -1) {
                   const updated = [...prev];
@@ -2643,10 +2671,10 @@ export default function App() {
 
               if (isSupabaseConfigured && supabase) {
                 try {
-                  const { error } = await supabase.from('ao_exam_submissions').upsert([sub]);
-                  if (error) console.error("Supabase direct exam submission upsert error:", error);
+                  const { error } = await supabase.from('ao_placement_submissions').upsert([sub]);
+                  if (error) console.error("Supabase direct placement submission upsert error:", error);
                 } catch (e) {
-                  console.error("Failed to directly upsert exam submission:", e);
+                  console.error("Failed to directly upsert placement submission:", e);
                 }
               }
             }}

@@ -145,3 +145,29 @@ export interface ExamSubmission {
   submittedAt: string;
 }
 
+export interface PlacementQuestion {
+  id: string;
+  category: 'general' | 'web' | 'mobile' | 'ai' | 'robotics';
+  difficulty: 'very_easy' | 'easy' | 'medium' | 'above_medium' | 'hard' | 'very_hard' | 'professional' | 'expert';
+  question: string;
+  options: string[];
+  correctAnswer: string;
+  points: number;
+}
+
+export interface PlacementSubmission {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  chosenTrack: string;
+  suggestedTrack?: string;
+  trackReason?: string;
+  score: number;
+  level: string;
+  submittedAt: string;
+  endTime: string;
+  whatsappOpened: boolean;
+  durationSeconds: number;
+}
+
