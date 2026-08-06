@@ -22,6 +22,7 @@ import {
   X
 } from 'lucide-react';
 import { Registration } from '../types';
+import { supabase, isSupabaseConfigured } from '../supabaseClient';
 
 interface HtmlExamPageProps {
   registrations: Registration[];
@@ -66,7 +67,7 @@ export default function HtmlExamPage({ registrations, onNavigateHome }: HtmlExam
   // Exam state
   const [started, setStarted] = useState(false);
   const [completed, setCompleted] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(3600); // 60 minutes in seconds
+  const [timeLeft, setTimeLeft] = useState(7200); // 120 minutes in seconds
   const [activeTab, setActiveTab] = useState<'q1' | 'q2' | 'q3' | 'q4' | 'q5'>('q1');
 
   // Answers state
@@ -359,6 +360,25 @@ export default function HtmlExamPage({ registrations, onNavigateHome }: HtmlExam
     }
 
     if (match) {
+      // Check if student already submitted the HTML exam in Supabase
+      if (isSupabaseConfigured && supabase) {
+        try {
+          // We need an async call, but since handleVerifyCode is async, we can await it!
+          const { data: existingSub, error: subError } = await supabase
+            .from('ao_exam_submissions')
+            .select('id, score')
+            .eq('studentCode', match.studentCode)
+            .like('name', '%(امتحان HTML)%');
+
+          if (!subError && existingSub && existingSub.length > 0) {
+            setAuthError(`عذراً! هذا الكود قام بتسليم امتحان HTML بالفعل وحصل على درجة (${existingSub[0].score}/50). لا يمكن إعادة دخول الامتحان.`);
+            return;
+          }
+        } catch (e) {
+          console.error("Error checking existing submissions:", e);
+        }
+      }
+
       setMatchedStudent(match);
       setStudentName(match.studentName);
       setIsAuthenticated(true);
@@ -372,7 +392,7 @@ export default function HtmlExamPage({ registrations, onNavigateHome }: HtmlExam
   // Start exam
   const handleStartExam = () => {
     setStarted(true);
-    setTimeLeft(3600);
+    setTimeLeft(7200);
   };
 
   // Timer countdown
@@ -395,8 +415,12 @@ export default function HtmlExamPage({ registrations, onNavigateHome }: HtmlExam
 
   // Autocomplete formatting time string
   const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
+    if (hrs > 0) {
+      return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
@@ -454,12 +478,41 @@ export default function HtmlExamPage({ registrations, onNavigateHome }: HtmlExam
       totalScore
     });
 
-    // Calculate time spent
-    const spentSecs = 3600 - finalTimeRemaining;
+    // Calculate time spent (2 hours = 7200 seconds)
+    const spentSecs = 7200 - finalTimeRemaining;
     const spentMins = Math.floor(spentSecs / 60);
     const spentSecsRem = spentSecs % 60;
     setTimeSpentString(`${spentMins} دقيقة و ${spentSecsRem} ثانية`);
-    setSubmittedAtStr(new Date().toLocaleString('ar-EG'));
+    const dateStr = new Date().toLocaleString('ar-EG');
+    setSubmittedAtStr(dateStr);
+
+    // Save submission to Supabase
+    if (matchedStudent) {
+      const submission = {
+        id: `html_exam_${matchedStudent.studentCode}_${Date.now()}`.toLowerCase(),
+        name: `${matchedStudent.studentName} (امتحان HTML)`,
+        phone: matchedStudent.studentPhone || "N/A",
+        email: matchedStudent.studentEmail || "N/A",
+        studentCode: matchedStudent.studentCode,
+        score: totalScore,
+        totalPoints: 50,
+        answers: {
+          q1: JSON.stringify(selectedAnswers),
+          q2: JSON.stringify(tfAnswers),
+          q3: JSON.stringify(fillAnswers),
+          q4: JSON.stringify(outputAnswers),
+          q5: practicalCode
+        },
+        submittedAt: dateStr
+      };
+
+      if (isSupabaseConfigured && supabase) {
+        supabase.from('ao_exam_submissions').upsert([submission]).then(({ error }) => {
+          if (error) console.error("Error saving exam submission to Supabase:", error);
+          else console.log("Exam submission saved successfully to Supabase!");
+        });
+      }
+    }
 
     setCompleted(true);
   };
@@ -639,7 +692,7 @@ export default function HtmlExamPage({ registrations, onNavigateHome }: HtmlExam
               <h3 className="font-bold text-white text-sm border-b border-slate-800 pb-2 flex items-center gap-1.5 text-indigo-400">📝 معلومات وتوجيهات الامتحان:</h3>
               <ul className="text-xs text-slate-300 space-y-2.5 list-disc list-inside leading-relaxed pr-1">
                 <li><strong>الدرجة الكلية:</strong> 50 درجة + 5 درجات مكافأة إضافية للعملي.</li>
-                <li><strong>الزمن المتاح:</strong> ساعة واحدة كاملة (60 دقيقة) من تاريخ بدء المحاولة.</li>
+                <li><strong>الزمن المتاح:</strong> ساعتان كاملتان (120 دقيقة) من تاريخ بدء المحاولة.</li>
                 <li><strong>هيكل الامتحان:</strong> يحتوي على 5 أقسام رئيسية (اختيارات، صح وخطأ، أكمل، تحليل كود، وسؤال تطبيقي عملي).</li>
                 <li><strong>القسم العملي:</strong> يحتوي على محرر أكواد متقدم لتكتب فيه كود صفحة موقعك الشخصي، وسيقوم المتصفح بتقييم الكود الخاص بك لحظياً وعرض النتيجة بشكل فوري!</li>
                 <li>بمجرد الضغط على زر "ابدأ الامتحان الآن" سيبدأ عداد الوقت التنازلي مباشرة ولا يمكن إيقافه مؤقتاً.</li>
