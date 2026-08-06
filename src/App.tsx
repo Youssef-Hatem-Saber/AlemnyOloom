@@ -66,6 +66,8 @@ import logoImg from '../assets/logo.png';
 import DynamicFormRenderer from './components/DynamicFormRenderer';
 import { supabase, isSupabaseConfigured } from './supabaseClient';
 import ExamPage from './components/ExamPage';
+import HtmlExamPage from './components/HtmlExamPage';
+import EditorPage from './components/EditorPage';
 import PlacementTestPage from './components/PlacementTestPage';
 import StemDesiresPage from './components/StemDesiresPage';
 
@@ -615,6 +617,8 @@ export default function App() {
     if (currentPath === '/news') return 'news';
     if (currentPath === '/contact') return 'contact';
     if (currentPath === '/exam' || currentPath === '/test' || currentPath === '/quiz') return 'exam';
+    if (currentPath === '/html-exam') return 'html-exam';
+    if (currentPath === '/playground' || currentPath === '/editor') return 'editor';
 
     // check dynamic free sessions slugs, e.g. '/free-session-stem' or '/free-session/stem-prep'
     const cleanPath = currentPath.startsWith('/') ? currentPath.substring(1) : currentPath; // e.g. 'free-session-stem'
@@ -680,6 +684,12 @@ export default function App() {
     } else if (activePage === 'contact') {
       title = "تواصل معنا واستفسر | أكاديمية علّمني علوم";
       description = "هل لديك استفسار عن مسار المتفوقين أو طريقة الاشتراك؟ تواصل مع إدارة علمني علوم والمدربين مباشرة عبر الهاتف أو الواتساب.";
+    } else if (activePage === 'html-exam') {
+      title = "امتحان أساسيات HTML | علّمني علوم";
+      description = "امتحان مادة HTML التقييمي لطلاب كورس الويب الشامل web01.";
+    } else if (activePage === 'editor') {
+      title = "محرر الأكواد التفاعلي | علّمني علوم";
+      description = "مساحة عمل تفاعلية لكتابة ومعاينة أكواد الـ HTML والـ CSS مباشرة في المتصفح.";
     } else if (activePage === 'exam') {
       title = "اختبار تحديد مستوى البرمجة | أكاديمية علّمني علوم";
       description = "اختبر مستواك الحقيقي في البرمجة خلال دقائق، واحصل على تقييم احترافي يحدد مستواك الحالي، والمسار الأنسب لك، والمستوى الذي يمكنك البدء منه داخل الأكاديمية.";
@@ -1210,7 +1220,6 @@ export default function App() {
               { label: t("الكورسات والبرامج", "Courses & Programs"), path: "/courses" },
               { label: t("المحاضرات المجانية", "Free Lectures"), path: "/free-sessions" },
               { label: t("آخر الأخبار", "Latest News"), path: "/news" },
-              { label: t("اختبار تحديد المستوى", "Placement Test"), path: "/exam" },
               { label: t("اتصل بنا", "Contact Us"), path: "/contact" },
             ].map((link) => {
               const isActive = (link.path === '/' && activePage === 'home') || 
@@ -1232,6 +1241,40 @@ export default function App() {
                 </button>
               );
             })}
+
+            {/* Dropdown Menu for Exams & Coding Tools */}
+            {(() => {
+              const isDropdownActive = currentPath === '/html-exam' || currentPath === '/playground' || currentPath === '/editor' || currentPath === '/exam';
+              return (
+                <div className="relative group">
+                  <button
+                    className={`px-4 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-1.5 cursor-pointer h-9 ${
+                      isDropdownActive
+                        ? 'text-[#2563EB] bg-[#DBEAFE]/60 border border-blue-200/50'
+                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                    }`}
+                  >
+                    <span>{t("الأدوات والاختبارات ▾", "Tools & Exams ▾")}</span>
+                  </button>
+                  
+                  <div className="absolute right-0 top-full mt-1 bg-white border border-slate-200/80 rounded-2xl shadow-xl w-60 py-2 hidden group-hover:block hover:block z-50 animate-fade-in text-right">
+                    {[
+                      { label: t("امتحان أساسيات HTML", "HTML Exam"), path: "/html-exam" },
+                      { label: t("محرر الأكواد التفاعلي", "HTML Live Editor"), path: "/playground" },
+                      { label: t("اختبار تحديد المستوى", "Placement Test"), path: "/exam" },
+                    ].map((item) => (
+                      <button
+                        key={item.path}
+                        onClick={() => navigateTo(item.path)}
+                        className="w-full text-right px-4 py-3 text-xs font-bold text-slate-700 hover:bg-blue-50 hover:text-[#2563EB] transition-all cursor-pointer block border-b border-slate-100 last:border-b-0 font-sans"
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
           </nav>
 
           {/* Admin CTA / Phone Action Block */}
@@ -1278,6 +1321,8 @@ export default function App() {
                   { label: t("الرئيسية", "Home"), path: "/" },
                   ...(settings.isStemTrackEnabled !== false ? [{ label: t("ترتيب رغبات ستيم", "STEM Desires Order"), path: "/stem-track" }] : []),
                   { label: t("الكورسات والبرامج", "Courses & Programs"), path: "/courses" },
+                  { label: t("امتحان HTML", "HTML Exam"), path: "/html-exam" },
+                  { label: t("محرر الأكواد", "Live Editor"), path: "/playground" },
                   { label: t("المحاضرات المجانية", "Free Lectures"), path: "/free-sessions" },
                   { label: t("آخر الأخبار", "Latest News"), path: "/news" },
                   { label: t("الاختبار التقييمي", "Assessment Exam"), path: "/exam" },
@@ -2361,6 +2406,21 @@ export default function App() {
                 }
               }
             }}
+            onNavigateHome={() => navigateTo('/')}
+          />
+        )}
+
+        {/* HTML EXAM VIEW PAGE */}
+        {activePage === 'html-exam' && (
+          <HtmlExamPage
+            registrations={registrations}
+            onNavigateHome={() => navigateTo('/')}
+          />
+        )}
+
+        {/* LIVE EDITOR PLAYGROUND PAGE */}
+        {activePage === 'editor' && (
+          <EditorPage
             onNavigateHome={() => navigateTo('/')}
           />
         )}
