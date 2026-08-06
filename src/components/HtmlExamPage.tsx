@@ -299,46 +299,11 @@ export default function HtmlExamPage({ registrations, onNavigateHome }: HtmlExam
     }
 
     const cleanCode = studentCode.trim().toUpperCase();
-    let match = null;
-
-    // 1. Try to query the MongoDB backend
-    try {
-      const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-      const API_BASE_URL = isLocal ? 'http://localhost:5000' : 'https://api-platform.youssefhatem.com';
-      
-      const response = await fetch(`${API_BASE_URL}/api/public/student/${cleanCode}`);
-      if (response.ok) {
-        const data = await response.json();
-        match = {
-          id: data.studentCode,
-          studentCode: data.studentCode,
-          studentName: data.name,
-          studentPhone: "N/A",
-          studentEmail: "N/A",
-          senderType: "student",
-          currentSchool: "طالب مسجل بالمنصة",
-          governorate: "المنصة التعليمية",
-          courseId: data.courseTitle === 'c3' ? 'c3' : 'web01',
-          dynamicData: {},
-          paymentStatus: "Paid",
-          paymentMethod: "المنصة",
-          registeredAt: new Date().toISOString()
-        };
-      } else if (response.status === 445) {
-        setAuthError('عذراً! هذا الكود مسجل بالمنصة ولكن لم يتم إضافته لكورس تطوير الويب (web01). يرجى مراجعة المعلم أو إدارة الأكاديمية لتفعيل الكورس لك.');
-        return;
-      }
-    } catch (err) {
-      console.warn("Backend server offline, falling back to local registrations list.");
-    }
-
-    // 2. Fallback to local registrations list if not verified by backend
-    if (!match) {
-      match = registrations.find(r => {
-        const regCode = (r.studentCode || '').trim().toUpperCase();
-        return regCode === cleanCode && (r.courseId === 'web01' || r.courseId === 'c3');
-      });
-    }
+    // Look for registration with courseId web01 or c3 (the pre-existing programming and web basics course)
+    let match = registrations.find(r => {
+      const regCode = (r.studentCode || '').trim().toUpperCase();
+      return regCode === cleanCode && (r.courseId === 'web01' || r.courseId === 'c3');
+    });
 
     // 3. Fallback for testing: if student code is AO_WEB_01 or AO100237
     if (!match && (cleanCode === 'AO_WEB_01' || cleanCode === 'AO100237')) {
@@ -634,9 +599,7 @@ export default function HtmlExamPage({ registrations, onNavigateHome }: HtmlExam
                 <span>التحقق ودخول منصة الامتحان</span>
               </button>
 
-              <div className="bg-blue-500/5 rounded-2xl p-4 border border-blue-500/10 text-[11px] text-slate-400 leading-relaxed text-center">
-                💡 <strong>تنويه تجريبي:</strong> يمكنك استخدام كود الطالب <strong>AO_WEB_01</strong> أو <strong>AO100237</strong> ككود تجريبي لتخطي هذا التحقق ودخول الامتحان مباشرة.
-              </div>
+
             </form>
           </motion.div>
         )}
