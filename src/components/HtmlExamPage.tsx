@@ -462,7 +462,7 @@ export default function HtmlExamPage({ registrations, onNavigateHome }: HtmlExam
         score: totalScore,
         totalPoints: 50,
         answers: {
-          q1: JSON.stringify(selectedAnswers),
+          q1: JSON.stringify(mcqAnswers),
           q2: JSON.stringify(tfAnswers),
           q3: JSON.stringify(fillAnswers),
           q4: JSON.stringify(outputAnswers),

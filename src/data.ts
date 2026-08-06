@@ -84,19 +84,6 @@ export const INITIAL_COURSES: Course[] = [
     duration: "1.5 شهر",
     isPublished: true,
     category: "برمجة"
-  },
-  {
-    id: "web01",
-    title: "كورس تطوير الويب الشامل web01",
-    description: "شرح لغة HTML وبناء صفحات الويب التفاعلية وتصميمها مع ممارسات عملية ممتازة.",
-    longDescription: "هذا الكورس مصمم لتعليم أساسيات الويب من الصفر حتى الاحتراف باستخدام لغة HTML وأحدث تقنيات CSS وجافاسكريبت. يشمل تطبيقات عملية، وتصحيح الكود لحظياً، وامتحانات دورية للتحقق من الفهم والتقييم.",
-    price: 800,
-    level: "المستوى المبتدئ والمتوسط",
-    image: "https://images.unsplash.com/photo-1547082299-de196ea013d6?auto=format&fit=crop&q=80&w=600",
-    lecturesCount: 12,
-    duration: "شهر واحد",
-    isPublished: true,
-    category: "برمجة"
   }
 ];
 
@@ -254,22 +241,6 @@ export const INITIAL_REGISTRATIONS: Registration[] = [
     paymentMethod: "مجاني",
     registeredAt: "2026-06-20T11:05:00.000Z",
     pricePaid: 0
-  },
-  {
-    id: "reg_web01_1",
-    studentCode: "AO_WEB_01",
-    studentName: "طالب ويب تجريبي",
-    studentPhone: "01099998888",
-    studentEmail: "web_student@example.com",
-    senderType: "student",
-    currentSchool: "مدرسة المتفوقين للعلوم والتكنولوجيا",
-    governorate: "القاهرة",
-    courseId: "web01",
-    dynamicData: {},
-    paymentStatus: "Paid",
-    paymentMethod: "فودافون كاش",
-    registeredAt: "2026-06-15T14:32:00.000Z",
-    pricePaid: 800
   }
 ];
 
